@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String      @id @default(cuid())
+  username    String      @unique
+  email       String      @unique
+  password    String
+  createdAt   DateTime    @default(now())
+
+  championships Championship[]
+}
+
+model Championship {
+  id          String      @id @default(cuid())
+  name        String
+  createdAt   DateTime    @default(now())
+
+  ownerId     String
+  owner       User        @relation(fields: [ownerId], references: [id])
+
+  phases      Phase[]
+
+  currentPhaseId  String?
+}
+
+model Phase {
+  id          String      @id @default(cuid())
+
+  drawCount   Int         @default(2)
+
+  name        String
+  order       Int
+
+  mode        String
+
+  minLevel    Int
+  maxLevel    Int?
+
+  allowOver   Boolean     @default(false)
+
+  championshipId  String
+  championship    Championship @relation(fields: [championshipId], references: [id])
+
+  draws           Draw[]
+
+  availableCharts PhaseChart[]
+}
+
+model Song {
+  id          String       @id @default(cuid())
+  title       String
+  bannerPath  String
+
+  charts      Chart[]
+}
+
+model Chart {
+  id          String        @id @default(cuid())
+
+  mode        String
+  level       Int
+
+  songId      String
+  song        Song          @relation(fields: [songId], references: [id])
+
+  draws       Draw[]
+  phases      PhaseChart[]
+}
+
+model Draw {
+  id          String        @id @default(cuid())
+
+  round       Int
+
+  seed        String
+  createdAt   DateTime      @default(now())
+
+  phaseId     String
+  phase       Phase         @relation(fields: [phaseId], references: [id])
+
+  chartId     String
+  chart       Chart         @relation(fields: [chartId], references: [id])
+
+}
+
+model PhaseChart {
+  id          String        @id @default(cuid())
+
+  phaseId     String
+  phase       Phase         @relation(fields: [phaseId], references: [id])
+
+  chartId     String
+  chart       Chart         @relation(fields: [chartId], references: [id])
+
+  @@unique([phaseId, chartId])
+}
+

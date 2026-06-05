@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Phase" ADD COLUMN     "drawCount" INTEGER NOT NULL DEFAULT 2;
