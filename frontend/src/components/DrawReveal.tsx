@@ -226,7 +226,9 @@ export default function DrawReveal({
                 startReveal
             );
         };
-    }, [draws, availableCharts]);
+    }, [
+        // draws, availableCharts
+    ]);
 
     if (!started) {
 
@@ -461,14 +463,6 @@ export default function DrawReveal({
                                                                 object-cover
                                                             "
 
-                                                            onLoad={(event) => {
-
-        console.log(
-            "HEIGHT",
-            event.currentTarget.getBoundingClientRect().height
-        );
-
-    }}
                                                         />
                                                     )
                                                 )

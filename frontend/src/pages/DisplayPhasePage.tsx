@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { useDisplay } from "../hooks/useDisplay";
+import DrawReveal from "../components/DrawReveal";
 
 export default function DisplayPhasePage() {
 
@@ -7,9 +9,76 @@ export default function DisplayPhasePage() {
         loading
     } = useDisplay();
 
+        const [
+        showDrawModal,
+        setShowDrawModal
+    ] = useState(false);
+
+    const [
+        drawResult,
+        setDrawResult
+    ] = useState<{
+        draws: unknown[];
+        seed: string;
+        } | null>(null);
+
+    const [
+        lastKnownSeed,
+        setLastKnownSeed
+    ] = useState("");
+
     const phase = data?.phase;
 
+    const latestSeed =
+        phase?.draws?.[
+            (phase.draws.length ?? 1) - 1
+        ]?.seed;
+
     const championship = data?.championship;
+
+    useEffect(() => {
+        if (!latestSeed) {
+            return;
+        }
+
+        if (lastKnownSeed === "") {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setLastKnownSeed(latestSeed);
+            return;
+        }
+
+        if (latestSeed === lastKnownSeed) {
+            console.log(
+                "SAME SEED",
+                latestSeed
+            );
+            return;
+        }
+
+        const currentDraws =
+            phase.draws.filter(
+                draw =>
+                    draw.seed === latestSeed
+            );
+
+        setLastKnownSeed(latestSeed);
+
+        setDrawResult({
+
+            draws: currentDraws,
+            seed: latestSeed
+        });
+
+        setShowDrawModal(true);
+
+        console.log(
+            "OPEN MODAL",
+            latestSeed
+        );
+
+    }, [
+        latestSeed
+    ]);
 
     if (
         loading ||
@@ -22,6 +91,21 @@ export default function DisplayPhasePage() {
             </div>
         );
     }
+
+    const revealDraws =
+        drawResult
+            ? drawResult.draws.map(
+                (draw:any) => ({
+                    song: draw.chart.song.title,
+
+                    bannerPath: draw.chart.song.bannerPath,
+
+                    mode: draw.chart.mode,
+
+                    level: draw.chart.level
+                })
+            )
+        : [];
 
     return (
 
@@ -199,6 +283,50 @@ export default function DisplayPhasePage() {
                 
             </div>
 
+        {
+            showDrawModal &&
+            drawResult && (
+                <div
+                    className="
+                        fixed
+                        inset-0
+                        bg-black/80
+
+                        flex
+                        items-center
+                        justify-center
+
+                        z-50
+                    "
+                >
+
+                    <div
+                        className="
+                            bg-zinc-950
+
+                            rounded-2xl
+                            
+                            p-8
+
+                            w-full
+
+                            mx-4
+                        "
+                    >
+
+                        <DrawReveal
+                            draws={revealDraws}
+
+                            availableCharts={
+                                phase.availableCharts
+                            }
+                        />
+
+                    </div>
+
+                </div>
+            )
+        }
         </div>
     );
 
