@@ -1,6 +1,8 @@
 import {
     useEffect,
-    useState
+    useState,
+    useRef,
+    useCallback
 } from "react";
 
 interface DrawRevealProps {
@@ -10,6 +12,8 @@ interface DrawRevealProps {
         song: string;
 
         bannerPath: string;
+
+        previewPath: string | null;
 
         mode: string;
 
@@ -60,20 +64,49 @@ export default function DrawReveal({
         setRoulettePosition
     ] = useState<number[]>([]);
 
-    // const [
-    //     activeReveal,
-    //     setActiveReveal
-    // ] = useState(0);
+    const [
+        activeReveal,
+        setActiveReveal
+    ] = useState<number | null>(null);
 
-    // cosnt [
-    //     centerBanner,
-    //     setCenterBanner
-    // ] = useState<string | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // const [
-    //     showingPreview,
-    //     setShowingPreview
-    // ] = useState(false);
+    const revealNextCard = useCallback((index: number) => {
+        if (index >= draws.length) return;
+
+        setActiveReveal(index);
+
+        const previewPath = draws[index].previewPath;
+        if (previewPath) {
+            const audio = new Audio(`http://localhost:3000/previewsongs/${previewPath}`);
+            audio.volume = 0.3;
+            audioRef.current = audio;
+            audio.play();
+
+            audio.onended = () => {
+                setActiveReveal(null);
+                setTimeout(() => revealNextCard(index + 1), 500);
+            };
+        } else {
+            setTimeout(() => {
+                setActiveReveal(null);
+                setTimeout(() => revealNextCard(index + 1), 500);
+            }, 3000);
+        }
+    }, [draws]);
+
+    useEffect(() => {
+        if (!started) return;
+
+        const revealTimer = setTimeout(() => {
+            revealNextCard(0);
+        }, 5700);
+
+        return () => {
+            clearTimeout(revealTimer);
+            audioRef.current?.pause();
+        };
+    }, [started, revealNextCard]);
 
     useEffect(() => {
 
@@ -277,9 +310,9 @@ export default function DrawReveal({
 
                 gap-6
 
-                overflow-x-auto
+                overflow-x-visible
 
-                pb-4
+                py-8
             "
         >
 
@@ -290,11 +323,8 @@ export default function DrawReveal({
                         <div
                             key = {index}
 
-                            className="
+                            className={`
                                 bg-zinc-900
-                                
-                                border
-                                border-blue-500
 
                                 rounded-xl
 
@@ -308,51 +338,94 @@ export default function DrawReveal({
                                 flex
                                 items-center
                                 justify-center
-                            "
+
+                                transition-all
+                                duration-500
+
+                                ${
+                                    activeReveal === index
+                                        ? `
+                                            z-10
+                                            scale-125
+                                            ring-4
+                                            ring-yellow-400
+                                            shadow-[0_0_40px_rgba(255,215,0,0.6)]
+                                        `
+                                        : `
+                                            border
+                                            border-blue-500
+                                        `
+                                }
+                            `}
                         >
-                            {
-                                visible > index
-                                ? (
+                            <div
+                                className="
+                                    relative
 
-                                    <div    
-                                        className="
-                                            flex
-                                            flex-col
+                                    w-100
 
-                                            w-full
+                                    h-[274px]
 
-                                            gap-4
+                                    overflow-hidden
 
-                                            items-center
-                                            justify-center
-                                        "
+                                    rounded-xl
+
+                                    border
+                                    border-zinc-700
+                                "
+                            >
+                                <div
+                                    className="
+                                        transition-transform
+                                        ease-out
+                                    "
+
+                                    style={{
+
+                                        transitionDuration:
+                                            "5.5s",
+
+                                        transform:
+                                            `translateY(-${
+                                                roulettePosition[index] ?? 0
+                                            }px)`
+                                    }}
                                     >
+                                    {
+                                        rouletteList[index]?.map(
+                                            (
+                                                banner,
+                                                bannerIndex
+                                            ) => (
 
-                                    <div
-                                        className="
-                                            relative  
-                                        "
-                                    >
+                                                <img
 
-                                        <img
-                                            src={
-                                                `http://localhost:3000/banners/${draw.bannerPath}`
-                                            }
+                                                    key={
+                                                        bannerIndex
+                                                    }
 
-                                            alt={
-                                                draw.song
-                                            }
-                                            
-                                            className="
-                                                w-100
+                                                    src={
+                                                        `http://localhost:3000/banners/${banner}`
+                                                    }
 
-                                                rounded-xl
+                                                    alt="Roulette"
 
-                                                border
-                                                border-zinc-700
-                                            "
-                                        />
+                                                    className="
+                                                        w-100
+                                                        h-[274px]
 
+                                                        object-cover
+                                                    "
+
+                                                />
+                                            )
+                                        )
+                                    }
+
+                                </div>
+
+                                {
+                                    activeReveal === index && (
                                         <div
                                             className={`
                                                 absolute
@@ -379,101 +452,16 @@ export default function DrawReveal({
                                                         ? "bg-orange-500"
                                                         : "bg-green-600"
                                                 }
-                                                
                                             `}
                                         >
-                                            
+
                                             {draw.level}
 
                                         </div>
-                                    
-                                    </div>
+                                    )
+                                }
 
-
-                                        <div
-                                            className="
-                                                text-xl
-                                                font-bold
-                                            "
-                                        >
-                                            {draw.song}
-                                        </div>
-
-                                    </div>
-                                    
-                                ) 
-                                : (
-
-                                    <div
-                                        className="
-                                            relative
-
-                                            w-100
-
-                                            h-[274px]
-
-                                            overflow-hidden
-
-                                            rounded-xl
-
-                                            border
-                                            border-zinc-700
-                                        "
-                                    >
-                                        <div
-                                            className="
-                                                transition-transform
-                                                ease-out
-                                            "
-
-                                            style={{
-
-                                                transitionDuration:
-                                                    "5.5s",
-
-                                                transform:
-                                                    `translateY(-${
-                                                        roulettePosition[index] ?? 0
-                                                    }px)`
-                                            }}
-                                            >
-                                            {
-                                                rouletteList[index]?.map(
-                                                    (
-                                                        banner,
-                                                        bannerIndex
-                                                    ) => (
-
-                                                        <img
-
-                                                            key={
-                                                                bannerIndex
-                                                            }
-
-                                                            src={
-                                                                `http://localhost:3000/banners/${banner}`
-                                                            }
-
-                                                            alt="Roulette"
-
-                                                            className="
-                                                                w-100
-                                                                h-[274px]
-
-                                                                object-cover
-                                                            "
-
-                                                        />
-                                                    )
-                                                )
-                                            }
-
-                                        </div>
-
-                                    </div>
-
-                                )
-                            }
+                            </div>
 
                         </div>
                     )

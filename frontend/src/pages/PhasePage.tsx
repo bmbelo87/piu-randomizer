@@ -23,6 +23,7 @@ interface DrawResult {
     draws: {
         song: string;
         bannerPath: string;
+        previewPath: string | null;
         mode: string;
         level: number;
     }[];

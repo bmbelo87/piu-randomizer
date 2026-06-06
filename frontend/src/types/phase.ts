@@ -18,6 +18,7 @@ export interface Phase {
             song: {
                 title: string;
                 bannerPath: string;
+                previewPath?: string;
             };
         };
     }[];
@@ -35,6 +36,7 @@ export interface Phase {
             song: {
                 title: string;
                 bannerPath: string;
+                previewPath?: string;
             };
         };
     }[];

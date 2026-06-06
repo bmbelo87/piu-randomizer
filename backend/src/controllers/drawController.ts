@@ -109,6 +109,9 @@ export async function drawCharts(
                     bannerPath:
                         item.chart.song.bannerPath,
 
+                    previewPath:
+                        item.chart.song.previewPath ?? null,
+
                     mode:
                     item.chart.mode,
 

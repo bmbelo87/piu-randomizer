@@ -17,12 +17,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/banners", 
+app.use("/banners",
     express.static(
         path.join(
             process.cwd(),
             "uploads",
             "banners"
+        )
+    )
+);
+
+app.use("/previewsongs",
+    express.static(
+        path.join(
+            process.cwd(),
+            "uploads",
+            "previewsongs"
         )
     )
 );

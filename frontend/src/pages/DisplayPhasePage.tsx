@@ -100,6 +100,8 @@ export default function DisplayPhasePage() {
 
                     bannerPath: draw.chart.song.bannerPath,
 
+                    previewPath: draw.chart.song.previewPath ?? null,
+
                     mode: draw.chart.mode,
 
                     level: draw.chart.level
