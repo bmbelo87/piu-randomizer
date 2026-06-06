@@ -5,6 +5,8 @@ import {
     useCallback
 } from "react";
 
+import { playPreview } from "../utils/drawAudio";
+
 interface DrawRevealProps {
 
     draws: {
@@ -27,12 +29,15 @@ interface DrawRevealProps {
                     bannerPath: string;
                 };
             };
-        }[]
+        }[];
+
+    audioContext?: AudioContext | null;
 }
 
 export default function DrawReveal({
     draws,
-    availableCharts
+    availableCharts,
+    audioContext
 }: DrawRevealProps) {
 
     const [
@@ -69,31 +74,43 @@ export default function DrawReveal({
         setActiveReveal
     ] = useState<number | null>(null);
 
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
-    const revealNextCard = useCallback((index: number) => {
+    const revealNextCard = useCallback(async (index: number) => {
         if (index >= draws.length) return;
 
         setActiveReveal(index);
 
         const previewPath = draws[index].previewPath;
-        if (previewPath) {
+        if (previewPath && audioContext) {
+            audioSourceRef.current?.stop();
+
+            await playPreview(
+                audioContext,
+                `http://localhost:3000/previewsongs/${previewPath}`
+            );
+
+            setActiveReveal(null);
+            setTimeout(() => revealNextCard(index + 1), 500);
+        } else if (previewPath) {
             const audio = new Audio(`http://localhost:3000/previewsongs/${previewPath}`);
             audio.volume = 0.3;
-            audioRef.current = audio;
             audio.play();
 
-            audio.onended = () => {
-                setActiveReveal(null);
-                setTimeout(() => revealNextCard(index + 1), 500);
-            };
+            await new Promise<void>(resolve => {
+                audio.onended = () => resolve();
+            });
+
+            setActiveReveal(null);
+            setTimeout(() => revealNextCard(index + 1), 500);
         } else {
-            setTimeout(() => {
-                setActiveReveal(null);
-                setTimeout(() => revealNextCard(index + 1), 500);
-            }, 3000);
+            await new Promise(resolve =>
+                setTimeout(resolve, 3000)
+            );
+            setActiveReveal(null);
+            setTimeout(() => revealNextCard(index + 1), 500);
         }
-    }, [draws]);
+    }, [draws, audioContext]);
 
     useEffect(() => {
         if (!started) return;
@@ -104,7 +121,7 @@ export default function DrawReveal({
 
         return () => {
             clearTimeout(revealTimer);
-            audioRef.current?.pause();
+            audioSourceRef.current?.stop();
         };
     }, [started, revealNextCard]);
 

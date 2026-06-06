@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDisplay } from "../hooks/useDisplay";
 import DrawReveal from "../components/DrawReveal";
 
@@ -6,10 +6,11 @@ export default function DisplayPhasePage() {
 
     const {
         data,
-        loading
+        loading,
+        refetch
     } = useDisplay();
 
-        const [
+    const [
         showDrawModal,
         setShowDrawModal
     ] = useState(false);
@@ -18,67 +19,64 @@ export default function DisplayPhasePage() {
         drawResult,
         setDrawResult
     ] = useState<{
-        draws: unknown[];
+        draws: {
+            song: string;
+            bannerPath: string;
+            previewPath: string | null;
+            mode: string;
+            level: number;
+        }[];
         seed: string;
-        } | null>(null);
+    } | null>(null);
 
     const [
-        lastKnownSeed,
-        setLastKnownSeed
-    ] = useState("");
+        audioReady,
+        setAudioReady
+    ] = useState(false);
+
+    const audioContextRef =
+        useRef<AudioContext | null>(null);
 
     const phase = data?.phase;
 
-    const latestSeed =
-        phase?.draws?.[
-            (phase.draws.length ?? 1) - 1
-        ]?.seed;
-
     const championship = data?.championship;
 
+    function handleEnableAudio() {
+
+        const ctx =
+            new AudioContext();
+
+        audioContextRef.current =
+            ctx;
+
+        setAudioReady(true);
+    }
+
     useEffect(() => {
-        if (!latestSeed) {
-            return;
-        }
-
-        if (lastKnownSeed === "") {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setLastKnownSeed(latestSeed);
-            return;
-        }
-
-        if (latestSeed === lastKnownSeed) {
-            console.log(
-                "SAME SEED",
-                latestSeed
-            );
-            return;
-        }
-
-        const currentDraws =
-            phase.draws.filter(
-                draw =>
-                    draw.seed === latestSeed
+        const channel =
+            new BroadcastChannel(
+                "piu-randomizer-draw"
             );
 
-        setLastKnownSeed(latestSeed);
+        channel.onmessage = (
+            event
+        ) => {
+            const msg = event.data;
 
-        setDrawResult({
+            refetch();
 
-            draws: currentDraws,
-            seed: latestSeed
-        });
+            setDrawResult({
+                draws: msg.draws,
+                seed: msg.seed
+            });
 
-        setShowDrawModal(true);
+            setShowDrawModal(true);
+        };
 
-        console.log(
-            "OPEN MODAL",
-            latestSeed
-        );
+        return () =>
+            channel.close();
 
-    }, [
-        latestSeed
-    ]);
+    }, [refetch]);
 
     if (
         loading ||
@@ -91,23 +89,6 @@ export default function DisplayPhasePage() {
             </div>
         );
     }
-
-    const revealDraws =
-        drawResult
-            ? drawResult.draws.map(
-                (draw:any) => ({
-                    song: draw.chart.song.title,
-
-                    bannerPath: draw.chart.song.bannerPath,
-
-                    previewPath: draw.chart.song.previewPath ?? null,
-
-                    mode: draw.chart.mode,
-
-                    level: draw.chart.level
-                })
-            )
-        : [];
 
     return (
 
@@ -317,13 +298,65 @@ export default function DisplayPhasePage() {
                     >
 
                         <DrawReveal
-                            draws={revealDraws}
+                            key={
+                                drawResult.seed
+                            }
+
+                            draws={
+                                drawResult.draws
+                            }
 
                             availableCharts={
-                                phase.availableCharts
+                                phase
+                                    .availableCharts
+                            }
+
+                            audioContext={
+                                audioReady
+                                    ? audioContextRef
+                                        .current
+                                    : null
                             }
                         />
 
+                    </div>
+
+                </div>
+            )
+        }
+
+        {
+            !audioReady && (
+                <div
+                    onClick={
+                        handleEnableAudio
+                    }
+
+                    className="
+                        fixed
+                        inset-0
+                        bg-black/90
+
+                        flex
+                        items-center
+                        justify-center
+
+                        z-[100]
+
+                        cursor-pointer
+                    "
+                >
+
+                    <div
+                        className="
+                            text-4xl
+                            font-bold
+                            text-center
+
+                            px-8
+                        "
+                    >
+                        Clique para ativar o áudio
                     </div>
 
                 </div>

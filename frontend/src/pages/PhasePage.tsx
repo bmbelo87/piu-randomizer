@@ -12,8 +12,6 @@ import {
     drawCharts
 } from "../hooks/useDraw";
 
-import DrawReveal from "../components/DrawReveal";
-
 import AddChartModal from "../components/AddChartModal";
 
 import { api } from "../services/api";
@@ -87,6 +85,18 @@ export default function PhasePage() {
             );
 
             await reload();
+
+            const channel =
+                new BroadcastChannel(
+                    "piu-randomizer-draw"
+                );
+
+            channel.postMessage({
+                draws: result.draws,
+                seed: result.seed
+            });
+
+            channel.close();
 
         } catch {
 
@@ -577,35 +587,15 @@ export default function PhasePage() {
                                 "
                             >
 
-                                <DrawReveal
-                                    draws={
-                                        drawResult.draws
-                                    }
-
-                                    availableCharts={
-                                        phase.availableCharts
-                                    }
-                                />
-
                                 <div
                                     className="
-                                        mt-8
                                         text-center
-                                        text-zinc-400
+                                        text-4xl
+                                        font-bold
+                                        py-16
                                     "
-                                
-                                > 
-                                    Seed: 
-                                    <span 
-                                        className="
-                                            ml-2
-                                            font-mono
-                                            text-white
-                                        "
-                                    >
-                                        {drawResult.seed}
-                                    </span>
-
+                                >
+                                    Sorteando músicas
                                 </div>
 
                                 <div

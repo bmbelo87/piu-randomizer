@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { api } from "../services/api";
 
 import type { DisplayData } from "../types/display";
 
-export function useDisplay(enabled = true) {
+export function useDisplay() {
 
     const [
         data,
@@ -18,44 +18,36 @@ export function useDisplay(enabled = true) {
 
     useEffect(() => {
 
-        if (!enabled) {
-            return;
-        }
+        api.get("/display")
+            .then(response => {
 
-        const loadDisplay = () => {
+                setData(
+                    response.data
+                );
 
-            api.get("/display")
-                .then(response => {
+                setLoading(
+                    false
+                );
+            });
 
-                    setData(
-                        response.data
-                    );
+    }, []);
 
-                    setLoading(
-                        false
-                    );
-                });
-        };
+    const refetch = useCallback(
+        async () => {
 
-        loadDisplay();
+            const response =
+                await api.get("/display");
 
-        const interval =
-            setInterval(
-                loadDisplay,
-                5000
+            setData(
+                response.data
             );
-
-        return () => {
-
-            clearInterval(
-                interval
-            );
-        };
-        
-    }, [enabled]);
+        },
+        []
+    );
 
     return {
         data,
-        loading
+        loading,
+        refetch
     };
 }
