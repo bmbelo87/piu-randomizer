@@ -6,7 +6,7 @@ import {
     usePhase
 } from "../hooks/usePhase";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
     drawCharts
@@ -64,11 +64,33 @@ export default function PhasePage() {
         setShowDrawModal
     ] = useState(false);
 
+    const [
+        drawBlocked,
+        setDrawBlocked
+    ] = useState(false);
+
+    const drawingRef =
+        useRef(false);
+
     async function handleDraw() {
 
-        try {
+        if (drawingRef.current) {
+            return;
+        }
 
-            setDrawing(true);
+        if (phase!.draws.length > 0) {
+
+            setDrawBlocked(true);
+            setShowDrawModal(true);
+            return;
+        }
+
+        drawingRef.current =
+            true;
+
+        setDrawing(true);
+
+        try {
 
             const result =
                 await drawCharts(
@@ -105,6 +127,9 @@ export default function PhasePage() {
             );
 
         } finally {
+
+            drawingRef.current =
+                false;
 
             setDrawing(false);
         }
@@ -150,6 +175,10 @@ export default function PhasePage() {
 
             setDrawResult(
                 null
+            );
+
+            setDrawBlocked(
+                false
             );
         } catch {
 
@@ -557,7 +586,7 @@ export default function PhasePage() {
 
                 {
                     showDrawModal &&
-                    drawResult && (
+                    (drawResult || drawBlocked) && (
 
                         <div
                             className="
@@ -587,16 +616,34 @@ export default function PhasePage() {
                                 "
                             >
 
-                                <div
-                                    className="
-                                        text-center
-                                        text-4xl
-                                        font-bold
-                                        py-16
-                                    "
-                                >
-                                    Sorteando músicas
-                                </div>
+                                {
+                                    drawBlocked
+                                        ? (
+                                            <div
+                                                className="
+                                                    text-center
+                                                    text-3xl
+                                                    font-bold
+                                                    py-16
+                                                    px-4
+                                                "
+                                            >
+                                                O Sorteio dessa Fase já foi realizado, confira as músicas sorteadas no Histórico
+                                            </div>
+                                        )
+                                        : (
+                                            <div
+                                                className="
+                                                    text-center
+                                                    text-4xl
+                                                    font-bold
+                                                    py-16
+                                                "
+                                            >
+                                                Sorteando músicas
+                                            </div>
+                                        )
+                                }
 
                                 <div
                                     className="
@@ -608,11 +655,14 @@ export default function PhasePage() {
 
                                     <button
 
-                                        onClick={() =>
+                                        onClick={() => {
                                             setShowDrawModal(
                                                 false
-                                            )
-                                        }
+                                            );
+                                            setDrawBlocked(
+                                                false
+                                            );
+                                        }}
 
                                         className="
                                             bg-blue-600
