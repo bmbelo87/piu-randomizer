@@ -28,6 +28,10 @@ export function useDisplay() {
                 setLoading(
                     false
                 );
+            })
+            .catch(() => {
+
+                setLoading(false);
             });
 
     }, []);
@@ -35,12 +39,19 @@ export function useDisplay() {
     const refetch = useCallback(
         async () => {
 
-            const response =
-                await api.get("/display");
+            try {
 
-            setData(
-                response.data
-            );
+                const response =
+                    await api.get("/display");
+
+                setData(
+                    response.data
+                );
+
+            } catch {
+
+                setLoading(false);
+            }
         },
         []
     );

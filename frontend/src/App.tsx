@@ -1,8 +1,6 @@
 import {
-  BrowserRouter, Routes, Route, Navigate
+  BrowserRouter, Routes, Route
 } from "react-router-dom";
-
-import LoginPage from "./pages/LoginPage";
 
 import DashboardPage from "./pages/DashboardPage";
 
@@ -14,20 +12,7 @@ import CreateChampionshipPage from "./pages/CreateChampionshipPage";
 
 import DisplayPhasePage from "./pages/DisplayPhasePage";
 
-function PrivateRoute({
-  children
-}: {
-  children: React.ReactNode
-}) {
-  const token = 
-    localStorage.getItem("token");
-
-    if (!token){
-      return <Navigate to="/login" />;
-    }
-
-    return children;
-}
+import MusicPoolPage from "./pages/MusicPoolPage";
 
 export default function App(){
 
@@ -38,59 +23,38 @@ export default function App(){
       <Routes>
 
         <Route
-          path="/login"
-
-          element={<LoginPage />}
-          />
-
-        <Route
           path="/"
 
-          element={
-            <PrivateRoute>
-
-              <DashboardPage />
-
-            </PrivateRoute>
-          }
+          element={<DashboardPage />}
           />
 
           <Route
             path="/championships/:id"
-            element={
-              <PrivateRoute>
-                <ChampionshipPage />
-              </PrivateRoute>
-            }
+            element={<ChampionshipPage />}
           />
 
           <Route
             path="/phases/:id"
 
-            element={
-              <PrivateRoute>
-                <PhasePage />
-              </PrivateRoute>
-            }
+            element={<PhasePage />}
           />
 
           <Route
             path="/create-championship"
 
-            element={
-              <PrivateRoute>
-                <CreateChampionshipPage />
-              </PrivateRoute>
-            }
+            element={<CreateChampionshipPage />}
           />
 
           <Route 
             path="/display"
-            element={
-              <DisplayPhasePage />
-            }
+            element={<DisplayPhasePage />}
           
           
+          />
+
+          <Route
+            path="/music-pool"
+            element={<MusicPoolPage />}
           />
       </Routes>
 

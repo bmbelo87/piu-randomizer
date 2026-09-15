@@ -37,10 +37,6 @@ export default function DisplayPhasePage() {
     const audioContextRef =
         useRef<AudioContext | null>(null);
 
-    const phase = data?.phase;
-
-    const championship = data?.championship;
-
     function handleEnableAudio() {
 
         const ctx =
@@ -65,6 +61,15 @@ export default function DisplayPhasePage() {
 
             refetch();
 
+            if (
+                msg.type ===
+                "phase-update"
+            ) {
+                setShowDrawModal(false);
+                setDrawResult(null);
+                return;
+            }
+
             setDrawResult({
                 draws: msg.draws,
                 seed: msg.seed
@@ -80,7 +85,7 @@ export default function DisplayPhasePage() {
 
     if (
         loading ||
-        !phase
+        !data
     ) {
 
         return (
@@ -90,37 +95,131 @@ export default function DisplayPhasePage() {
         );
     }
 
-    return (
+    const {
+        championship,
+        phase
+    } = data;
 
-        <div
-            className="
-                min-h-screen
+    const allPhases =
+        data.allPhases ?? [];
 
-                bg-black
+    const isActive =
+        championship.currentPhaseId
+            ? true
+            : false;
 
-                text-white
+    let endState:
+        "none"
+        | "championship-ended"
+        = "none";
 
-                p-8
-            "
-        >
+    if (!isActive) {
 
-            <div
-                className="
-                    max-w-7xl
+        const anyDraws =
+            allPhases.some(
+                p => p.drawCount > 0
+            );
 
-                    mx-auto
-                "
-            >
+        if (anyDraws) {
 
-                <h1
-                className="
-                    text-5xl
-                    font-bold
-                "
+            const maxOrder =
+                Math.max(
+                    ...allPhases.map(
+                        p => p.order
+                    )
+                );
+
+            const lastPhase =
+                allPhases.find(
+                    p =>
+                        p.order === maxOrder
+                );
+
+            if (
+                lastPhase &&
+                lastPhase.drawCount > 0
+            ) {
+                endState =
+                    "championship-ended";
+            }
+        }
+    }
+
+    const ended =
+        endState !== "none";
+
+    function renderContent() {
+
+        if (ended) {
+
+            return (
+                <div
+                    className="
+                        flex
+                        flex-col
+                        items-center
+                        justify-center
+
+                        min-h-[60vh]
+                    "
                 >
-                    {championship?.name}
-                </h1>
+                    <div
+                        className="
+                            text-6xl
+                            font-black
+                            text-center
+                            mb-6
+                        "
+                    >
+                        🏆
+                    </div>
+                    <div
+                        className="
+                            text-4xl
+                            font-bold
+                            text-center
+                        "
+                    >
+                        Campeonato Encerrado
+                    </div>
+                </div>
+            );
+        }
 
+        if (!phase) {
+
+            if (
+                !ended &&
+                allPhases.length > 0
+            ) {
+                return (
+                    <div
+                        className="
+                            flex
+                            flex-col
+                            items-center
+                            justify-center
+                            min-h-[60vh]
+                        "
+                    >
+                        <div
+                            className="
+                                text-4xl
+                                font-bold
+                                text-center
+                            "
+                        >
+                            Aguardando...
+                        </div>
+                    </div>
+                );
+            }
+
+            return null;
+        }
+
+        return (
+            <>
                 <div
                     className="
                         text-4xl
@@ -130,7 +229,7 @@ export default function DisplayPhasePage() {
                         mb-4
                     "
                 >
-                    {phase?.name}
+                    {phase.name}
                 </div>
                 <div 
                     className="
@@ -191,7 +290,15 @@ export default function DisplayPhasePage() {
                     "    
                 >
                     {
-                        phase.draws.map(
+                        [...phase.draws]
+                            .sort(
+                                (a, b) =>
+                                    a.chart.level - b.chart.level ||
+                                    a.chart.song.title.localeCompare(
+                                        b.chart.song.title
+                                    )
+                            )
+                            .map(
                             draw => (
 
                                 <div
@@ -263,12 +370,51 @@ export default function DisplayPhasePage() {
                     }
 
                 </div>
+            </>
+        );
+    }
+
+    return (
+
+        <div
+            className="
+                min-h-screen
+
+                bg-black
+
+                text-white
+
+                p-8
+            "
+        >
+
+            <div
+                className="
+                    max-w-7xl
+
+                    mx-auto
+                "
+            >
+
+                <h1
+                className="
+                    text-5xl
+                    font-bold
+                    mb-12
+                "
+                >
+                    {championship?.name}
+                </h1>
+
+                {renderContent()}
                 
             </div>
 
         {
+            !ended &&
             showDrawModal &&
-            drawResult && (
+            drawResult &&
+            phase && (
                 <div
                     className="
                         fixed

@@ -4,13 +4,10 @@ import {
     drawCharts 
 } from "../controllers/drawController";
 
-import { authMiddleware } from "../middlewares/authMiddleware";
-
 const router = Router();
 
 router.post(
     "/phase/:id",
-    authMiddleware,
     drawCharts
 );
 

@@ -7,25 +7,20 @@ import {
     getBannerPool
 } from "../controllers/songController";
 
-import { authMiddleware } from "../middlewares/authMiddleware";
-
 const router = Router();
 
 router.post(
     "/",
-    authMiddleware,
     createSong
 );
 
 router.get(
     "/",
-    authMiddleware,
     listSongs
 );
 
 router.get(
     "/charts",
-    authMiddleware,
     listCharts
 );
 

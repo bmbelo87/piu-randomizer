@@ -42,8 +42,36 @@ export function useChampionships() {
         }
     }
 
+    async function removeChampionship(
+        id: string
+    ) {
+        try {
+
+            await api.delete(
+                `/championships/${id}`
+            );
+
+            setChampionships(
+                previous =>
+                    previous.filter(
+                        championship =>
+                            championship.id !== id
+                    )
+            );
+
+            return true;
+
+        } catch (error) {
+
+            console.error(error);
+
+            return false;
+        }
+    }
+
     return {
         championships,
-        loading
+        loading,
+        removeChampionship
     };
 }

@@ -1,6 +1,7 @@
 export interface Phase {
     id: string;
     name: string;
+    championshipId: string;
     mode: string;
     minLevel: number;
     maxLevel: number | null;
@@ -16,6 +17,7 @@ export interface Phase {
             level: number;
 
             song: {
+                id: string;
                 title: string;
                 bannerPath: string;
                 previewPath?: string;
@@ -34,6 +36,7 @@ export interface Phase {
             level: number;
 
             song: {
+                id: string;
                 title: string;
                 bannerPath: string;
                 previewPath?: string;

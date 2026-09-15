@@ -12,7 +12,9 @@ export async function createChampionship(
         const championship = await prisma.championship.create({
             data: {
                 name, 
-                ownerId: (req as any).userId,
+
+                order:
+                    (await getNextOrder()),
 
                 phases: {
                     create: generatePhases(phases)
@@ -37,12 +39,12 @@ export async function listChampionships(req: Request, res: Response) {
     try {
         const championships = 
         await prisma.championship.findMany({
-            where: {
-                ownerId: (req as any).userId
-            },
-
             include: {
                 phases: true
+            },
+
+            orderBy: {
+                order: "asc"
             }
         });
 
@@ -53,6 +55,17 @@ export async function listChampionships(req: Request, res: Response) {
             error: "Internal server error"
         });
     }
+}
+
+async function getNextOrder() {
+    const aggregate =
+        await prisma.championship.aggregate({
+            _max: {
+                order: true
+            }
+        });
+
+    return (aggregate._max.order ?? -1) + 1;
 }
 
 function generatePhases(phases: any[]) {
@@ -116,6 +129,35 @@ export async function getChampionship(
     } 
 }
 
+export async function deleteChampionship(
+    req: Request,
+    res: Response
+) {
+
+    try {
+
+        const id =
+            req.params.id as string;
+
+        await prisma.championship.delete({
+            where: {
+                id
+            }
+        });
+
+        return res.json({
+            success: true
+        });
+
+    } catch {
+        
+        return res.status(500).json({
+            error:
+                "Internal server error"
+        });
+    }
+}
+
 export async function setCurrentPhase(
     req: Request,
     res: Response
@@ -128,6 +170,25 @@ export async function setCurrentPhase(
         const {
             phaseId
         } = req.body;
+
+        if (phaseId) {
+
+            await prisma.championship.updateMany(
+                {
+                    where: {
+                        id: {
+                            not: championshipId
+                        },
+                        currentPhaseId: {
+                            not: null
+                        }
+                    },
+                    data: {
+                        currentPhaseId: null
+                    }
+                }
+            );
+        }
 
         const championship =
             await prisma.championship.update({

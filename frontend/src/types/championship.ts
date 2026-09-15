@@ -3,6 +3,8 @@ export interface Phase {
 
     name: string;
 
+    order: number;
+
     mode: string;
 
     minLevel: number;
@@ -18,6 +20,8 @@ export interface Championship {
     id: string;
 
     name: string;
+
+    currentPhaseId: string | null;
 
     phases: Phase[];
 }

@@ -2,7 +2,8 @@ import {
     useEffect,
     useState,
     useRef,
-    useCallback
+    useCallback,
+    useMemo
 } from "react";
 
 import { playPreview } from "../utils/drawAudio";
@@ -25,6 +26,7 @@ interface DrawRevealProps {
     availableCharts: {
             chart: {
                 song: {
+                    id: string;
                     title:string;
                     bannerPath: string;
                 };
@@ -40,11 +42,24 @@ export default function DrawReveal({
     audioContext
 }: DrawRevealProps) {
 
+    const sortedDraws =
+        useMemo(
+            () =>
+                [...draws].sort(
+                    (a, b) =>
+                        a.level - b.level ||
+                        a.song.localeCompare(
+                            b.song
+                        )
+                ),
+            [draws]
+        );
+
     const [
         visible,
         setVisible
     ] = useState(
-        draws.length > 0
+        sortedDraws.length > 0
             ? 0
             : 0
     );
@@ -77,11 +92,11 @@ export default function DrawReveal({
     const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
     const revealNextCard = useCallback(async (index: number) => {
-        if (index >= draws.length) return;
+        if (index >= sortedDraws.length) return;
 
         setActiveReveal(index);
 
-        const previewPath = draws[index].previewPath;
+        const previewPath = sortedDraws[index].previewPath;
         if (previewPath && audioContext) {
             audioSourceRef.current?.stop();
 
@@ -110,7 +125,7 @@ export default function DrawReveal({
             setActiveReveal(null);
             setTimeout(() => revealNextCard(index + 1), 500);
         }
-    }, [draws, audioContext]);
+    }, [sortedDraws, audioContext]);
 
     useEffect(() => {
         if (!started) return;
@@ -129,7 +144,7 @@ export default function DrawReveal({
 
         console.log(
             "EFFECT",
-            draws.length,
+            sortedDraws.length,
             availableCharts.length
         );
 
@@ -159,7 +174,7 @@ export default function DrawReveal({
 
                 setStarted(true);
 
-                draws.forEach(
+                sortedDraws.forEach(
                     (draw, index) => {
 
                         console.log("DRAW", index, draw.song)
@@ -334,7 +349,7 @@ export default function DrawReveal({
         >
 
             {
-                draws.map (
+                sortedDraws.map (
                     (draw, index) => (
 
                         <div

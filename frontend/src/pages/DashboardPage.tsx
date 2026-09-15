@@ -10,7 +10,8 @@ export default function DashboardPage() {
 
     const {
         championships,
-        loading
+        loading,
+        removeChampionship
     } = useChampionships();
 
     if (loading) {
@@ -65,40 +66,108 @@ export default function DashboardPage() {
                 font-bold
                 "
                 >
-                    Championships
+                    GAUCHONES 2026
                 </h1>
-                
-                            <button
 
-                    onClick={() =>
-                        navigate(
-                            "/create-championship"
-                        )
-                    }
-
+                <div
                     className="
-                        bg-green-600
-
-                        hover:bg-green-500
-
-                        text-white
-
-                        font-bold
-
-                        px-6
-                        py-3
-
-                        rounded-xl
-
-                        transition
-
-                        mb-8
+                        flex
+                        gap-3
                     "
                 >
 
-                    + New Championship
+                    <button
 
-                </button>
+                        onClick={() =>
+                            navigate(
+                                "/music-pool"
+                            )
+                        }
+
+                        className="
+                            bg-purple-600
+
+                            hover:bg-purple-500
+
+                            text-white
+
+                            font-bold
+
+                            px-6
+                            py-3
+
+                            rounded-xl
+
+                            transition
+                        "
+                    >
+
+                        Lista de Músicas
+
+                    </button>
+
+                    <button
+
+                        onClick={() =>
+                            window.open(
+                                "/display",
+                                "_blank"
+                            )
+                        }
+
+                        className="
+                            bg-blue-600
+
+                            hover:bg-blue-500
+
+                            text-white
+
+                            font-bold
+
+                            px-6
+                            py-3
+
+                            rounded-xl
+
+                            transition
+                        "
+                    >
+
+                        Tela do Sorteador
+
+                    </button>
+
+                    <button
+
+                        onClick={() =>
+                            navigate(
+                                "/create-championship"
+                            )
+                        }
+
+                        className="
+                            bg-green-600
+
+                            hover:bg-green-500
+
+                            text-white
+
+                            font-bold
+
+                            px-6
+                            py-3
+
+                            rounded-xl
+
+                            transition
+                        "
+                    >
+
+                        + New Championship
+
+                    </button>
+
+                </div>
 
             </div>
 
@@ -143,16 +212,64 @@ export default function DashboardPage() {
                             transition
                             "
                             >
-                                <h2
-                                className="
-                                text-2x1
-                                font-bold
-                                
-                                mb-4
-                                "
+                                <div
+                                    className="
+                                        flex
+                                        justify-between
+                                        items-start
+                                    "
                                 >
-                                    {championship.name}
-                                </h2>
+                                    <h2
+                                    className="
+                                    text-2x1
+                                    font-bold
+                                    
+                                    mb-4
+                                    "
+                                    >
+                                        {championship.name}
+                                    </h2>
+
+                                    <button
+
+                                        onClick={(
+                                            e
+                                        ) => {
+                                            e.stopPropagation();
+
+                                            if (
+                                                confirm(
+                                                    `Remover o campeonato "${championship.name}"?`
+                                                )
+                                            ) {
+                                                removeChampionship(
+                                                    championship.id
+                                                );
+                                            }
+                                        }}
+
+                                        className="
+                                            bg-red-600
+
+                                            hover:bg-red-500
+
+                                            text-white
+
+                                            text-sm
+
+                                            font-bold
+
+                                            px-3
+                                            py-1
+
+                                            rounded-lg
+
+                                            transition
+                                        "
+                                    >
+                                        Remover
+                                    </button>
+                                </div>
 
                                 <div
                                 className="
@@ -163,46 +280,62 @@ export default function DashboardPage() {
                                         championship.phases.map(
                                             phase => (
 
-                                                <div
-                                                key={phase.id}
+                            <div
+                                key={phase.id}
 
-                                                className="
-                                                bg-zinc-800
+                                className="
+                                bg-zinc-800
 
-                                                p-3
+                                p-3
 
-                                                rounded-x1
-                                                "
-                                                >
-                                                    <div>
-                                                        {phase.name}
-                                                    </div>
+                                rounded-x1
+                                "
+                                >
+                                    <div>
+                                        {phase.name}
+                                    </div>
 
-                                                    <div
-                                                    className="
-                                                    text-sm
-                                                    text-zinc-400
-                                                    "
-                                                    >
+                                    <div
+                                    className="
+                                    text-sm
+                                    text-zinc-400
+                                    "
+                                    >
 
-                                                        {phase.mode}
-                                                        {" "}
+                                        {phase.mode}
+                                        {" "}
 
-                                                        {phase.minLevel}
+                                        {phase.minLevel}
 
-                                                        {
-                                                            phase.allowOver
-                                                            ? "+"
-                                                            : `~${phase.maxLevel}`
-                                                        }
-                                                    </div>
-
-                                                </div>
-                                            )
-                                        )
-                                    }
+                                        {
+                                            phase.allowOver
+                                            ? "+"
+                                            : `~${phase.maxLevel}`
+                                        }
+                                    </div>
 
                                 </div>
+                            )
+                        )
+                    }
+
+                                </div>
+
+                                {
+                                    championship
+                                        .currentPhaseId && (
+                                        <div
+                                            className="
+                                                mt-4
+                                                text-sm
+                                                font-bold
+                                                text-green-400
+                                            "
+                                        >
+                                            ATIVO
+                                        </div>
+                                    )
+                                }
                             
                             </div>
                         )

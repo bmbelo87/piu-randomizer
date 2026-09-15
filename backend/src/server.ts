@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 
-import authRoutes from "./routes/authRoutes";
 import championshipRoutes from "./routes/championshipRoutes";
 import songRoutes from "./routes/songRoutes";
 import phaseRoutes from "./routes/phaseRoutes";
@@ -37,7 +36,6 @@ app.use("/previewsongs",
     )
 );
 
-app.use("/auth", authRoutes);
 app.use("/championships", championshipRoutes);
 app.use("/songs", songRoutes);
 app.use("/phases", phaseRoutes);

@@ -44,6 +44,20 @@ export async function drawCharts(
             });
         }
 
+        const championship =
+            await prisma.championship.findFirst({
+                where: {
+                    currentPhaseId: phaseId
+                }
+            });
+
+        if (!championship) {
+            return res.status(400).json({
+                error:
+                    "Phase is not the active phase"
+            });
+        }
+
         const alreadyDrawnIds = 
         phase.draws.map(
             draw => draw.chartId
@@ -65,21 +79,85 @@ export async function drawCharts(
             });
         }
 
+        const chartsByLevel =
+            new Map<number, typeof availableCharts>();
+
+        for (
+            const phaseChart
+            of availableCharts
+        ) {
+            const level =
+                phaseChart.chart.level;
+
+            const list =
+                chartsByLevel.get(level) ?? [];
+
+            list.push(phaseChart);
+
+            chartsByLevel.set(
+                level,
+                list
+            );
+        }
+
+        const levels =
+            Array.from(
+                chartsByLevel.keys()
+            );
+
+        if (
+            levels.length < amount
+        ) {
+            return res.status(400).json({
+                error: "Not enough distinct levels available"
+            });
+        }
+
+        for (let i = levels.length - 1; i > 0; i--) {
+            const j =
+                crypto.randomInt(0, i + 1);
+
+            const temp = levels[i];
+            levels[i] = levels[j];
+            levels[j] = temp;
+        }
+
         const drawnCharts = [];
 
         const seed = 
         crypto.randomBytes(16)
         .toString("hex");
 
-        for ( let i = 0; i < amount; i++ )
+        for (let i = 0; i < amount; i++ )
         {
-            const randomIndex = crypto.randomInt(0, availableCharts.length);
-            
-            const selected = availableCharts[randomIndex];
+            const level =
+                levels[
+                    crypto.randomInt(
+                        0,
+                        levels.length
+                    )
+                ];
+
+            const levelCharts =
+                chartsByLevel.get(level)!;
+
+            const randomIndex =
+                crypto.randomInt(
+                    0,
+                    levelCharts.length
+                );
+
+            const selected =
+                levelCharts[randomIndex];
 
             drawnCharts.push(selected);
 
-            availableCharts.splice(randomIndex, 1);
+            chartsByLevel.delete(level);
+
+            levels.splice(
+                levels.indexOf(level),
+                1
+            );
 
             await prisma.draw.create({
                 data: {

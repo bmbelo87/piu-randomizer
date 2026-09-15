@@ -1,9 +1,12 @@
 import {
+    useCallback,
     useEffect,
     useState
 } from "react";
 
 import { api } from "../services/api";
+
+import type { Championship } from "../types/championship";
 
 export function useChampionship(
     id: string
@@ -12,7 +15,7 @@ export function useChampionship(
     const [
         championship,
         setChampionship
-    ] = useState<any>(null);
+    ] = useState<Championship | null>(null);
 
     const [
         loading,
@@ -44,8 +47,24 @@ export function useChampionship(
         }
     }
 
+    const reload = useCallback(
+        async () => {
+
+            const response =
+                await api.get(
+                    `/championships/${id}`
+                );
+
+            setChampionship(
+                response.data
+            );
+        },
+        [id]
+    );
+
     return {
         championship,
-        loading
+        loading,
+        reload
     };
 }

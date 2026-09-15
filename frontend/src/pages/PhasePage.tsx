@@ -6,7 +6,11 @@ import {
     usePhase
 } from "../hooks/usePhase";
 
-import { useRef, useState } from "react";
+import {
+    useRef,
+    useState,
+    useEffect
+} from "react";
 
 import {
     drawCharts
@@ -65,9 +69,51 @@ export default function PhasePage() {
     ] = useState(false);
 
     const [
-        drawBlocked,
-        setDrawBlocked
+        blockReason,
+        setBlockReason
+    ] = useState<string | null>(null);
+
+    const [
+        activating,
+        setActivating
     ] = useState(false);
+
+    const [
+        isActivePhase,
+        setIsActivePhase
+    ] = useState(false);
+
+    const championshipId =
+        phase?.championshipId;
+
+    useEffect(
+        () => {
+            if (
+                !championshipId ||
+                !id
+            ) {
+                return;
+            }
+
+            api
+                .get(
+                    `/championships/${championshipId}`
+                )
+                .then(
+                    (res) => {
+                        setIsActivePhase(
+                            res.data
+                                .currentPhaseId ===
+                                id
+                        );
+                    }
+                );
+        },
+        [
+            championshipId,
+            id
+        ]
+    );
 
     const drawingRef =
         useRef(false);
@@ -78,9 +124,18 @@ export default function PhasePage() {
             return;
         }
 
+        if (!isActivePhase) {
+
+            setBlockReason("not-active");
+            setShowDrawModal(true);
+            return;
+        }
+
         if (phase!.draws.length > 0) {
 
-            setDrawBlocked(true);
+            setBlockReason(
+                "already-drawn"
+            );
             setShowDrawModal(true);
             return;
         }
@@ -177,14 +232,53 @@ export default function PhasePage() {
                 null
             );
 
-            setDrawBlocked(
-                false
+            setBlockReason(
+                null
             );
         } catch {
 
             alert(
                 "Unable to clear history"
             );
+        }
+    }
+
+    async function activatePhase() {
+
+        setActivating(true);
+
+        try {
+
+            const newPhaseId =
+                isActivePhase
+                    ? null
+                    : phase!.id;
+
+            await api.patch(
+                `/championships/${phase!.championshipId}/current-phase`,
+                {
+                    phaseId: newPhaseId
+                }
+            );
+
+            setIsActivePhase(
+                !isActivePhase
+            );
+
+            const channel =
+                new BroadcastChannel(
+                    "piu-randomizer-draw"
+                );
+
+            channel.postMessage({
+                type: "phase-update"
+            });
+
+            channel.close();
+
+        } finally {
+
+            setActivating(false);
         }
     }
 
@@ -209,6 +303,24 @@ export default function PhasePage() {
             </div>
         );
     }
+
+    const sortedCharts =
+        [...phase.availableCharts].sort(
+            (a, b) =>
+                a.chart.level - b.chart.level ||
+                a.chart.song.title.localeCompare(
+                    b.chart.song.title
+                )
+        );
+
+    const sortedDraws =
+        [...phase.draws].sort(
+            (a, b) =>
+                a.chart.level - b.chart.level ||
+                a.chart.song.title.localeCompare(
+                    b.chart.song.title
+                )
+        );
 
     return (
 
@@ -253,6 +365,13 @@ export default function PhasePage() {
 
             </p>
 
+                <div
+                    className="
+                        flex
+                        gap-4
+                        mb-8
+                    "
+                >
                 <button
                     onClick={handleDraw}
 
@@ -267,8 +386,6 @@ export default function PhasePage() {
                         rounded-xl
 
                         font-bold
-
-                        mb-8
                     "
                 >
 
@@ -279,6 +396,38 @@ export default function PhasePage() {
                     }
 
                 </button>
+
+                <button
+                    onClick={
+                        activatePhase
+                    }
+
+                    disabled={
+                        activating
+                    }
+
+                    className="
+                        bg-green-600
+
+                        px-6
+                        py-3
+
+                        rounded-xl
+
+                        font-bold
+                    "
+                >
+
+                    {
+                        activating
+                            ? "Ativando..."
+                            : isActivePhase
+                                ? "Desativar Fase"
+                                : "Ativar Fase"
+                    }
+
+                </button>
+                </div>
 
             <h2
                 className="
@@ -324,7 +473,7 @@ export default function PhasePage() {
             >
 
                 {
-                    phase.availableCharts.map(
+                    sortedCharts.map(
                         (item: {
                             id: string;
 
@@ -371,25 +520,25 @@ export default function PhasePage() {
                                             relative
                                         "
                                     >
-                                        <img
+                                         <img
 
-                                        src={
-                                            `http://localhost:3000/banners/${item.chart.song.bannerPath}`
-                                        }
-                                    
-                                        alt={
-                                            item.chart.song.title
-                                        }
+                                         src={
+                                             `http://localhost:3000/banners/${item.chart.song.bannerPath}`
+                                         }
+                                     
+                                         alt={
+                                             item.chart.song.title
+                                         }
 
-                                        className=" 
-                                            w-full
+                                         className=" 
+                                             w-full
 
-                                            rounded-lg
+                                             rounded-lg
 
-                                            mb-3
-                                        "
+                                             mb-3
+                                         "
 
-                                    />
+                                     />
 
                                     <div
                                         className={`
@@ -521,7 +670,7 @@ export default function PhasePage() {
 
             </div>
                 {
-                    phase.draws.map(
+                    sortedDraws.map(
                         (draw: {
                             id: string;
 
@@ -586,7 +735,7 @@ export default function PhasePage() {
 
                 {
                     showDrawModal &&
-                    (drawResult || drawBlocked) && (
+                    (drawResult || blockReason) && (
 
                         <div
                             className="
@@ -617,7 +766,23 @@ export default function PhasePage() {
                             >
 
                                 {
-                                    drawBlocked
+                                    blockReason ===
+                                    "not-active"
+                                        ? (
+                                            <div
+                                                className="
+                                                    text-center
+                                                    text-3xl
+                                                    font-bold
+                                                    py-16
+                                                    px-4
+                                                "
+                                            >
+                                                Ative esta fase antes de realizar o sorteio
+                                            </div>
+                                        )
+                                        : blockReason ===
+                                        "already-drawn"
                                         ? (
                                             <div
                                                 className="
@@ -659,8 +824,8 @@ export default function PhasePage() {
                                             setShowDrawModal(
                                                 false
                                             );
-                                            setDrawBlocked(
-                                                false
+                                            setBlockReason(
+                                                null
                                             );
                                         }}
 
