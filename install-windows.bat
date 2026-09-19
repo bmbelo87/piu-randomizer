@@ -41,11 +41,34 @@ if not exist "backend\.env" (
 
 where psql >nul 2>nul
 if errorlevel 1 (
-    echo PostgreSQL nao encontrado no PATH.
-    echo Instale o PostgreSQL, configure DATABASE_URL em backend\.env e execute novamente.
+    where winget >nul 2>nul
+    if errorlevel 1 (
+        echo PostgreSQL nao encontrado e winget nao esta disponivel.
+        echo Instale o PostgreSQL manualmente e execute este script novamente.
+        pause
+        exit /b 1
+    )
+
+    echo PostgreSQL nao encontrado. Instalando via winget...
+    winget install --id PostgreSQL.PostgreSQL.17 --exact --source winget --accept-package-agreements --accept-source-agreements
+    if errorlevel 1 (
+        echo Versao 17 indisponivel. Tentando PostgreSQL 16...
+        winget install --id PostgreSQL.PostgreSQL.16 --exact --source winget --accept-package-agreements --accept-source-agreements
+    )
+
+    for %%V in (17 16 15 14) do if exist "C:\Program Files\PostgreSQL\%%V\bin\psql.exe" set "PATH=C:\Program Files\PostgreSQL\%%V\bin;%%PATH%%"
+)
+
+where psql >nul 2>nul
+if errorlevel 1 (
+    echo PostgreSQL foi instalado, mas o psql ainda nao esta disponivel.
+    echo Feche e abra este script novamente apos concluir a instalacao.
     pause
     exit /b 1
 )
+
+echo PostgreSQL encontrado.
+echo Confirme que DATABASE_URL em backend\.env usa o usuario, senha e porta corretos.
 
 echo.
 echo [1/5] Instalando dependencias do backend...
