@@ -15,3 +15,15 @@ export async function drawCharts(
 
         return response.data;
 }
+
+export async function rerollChart(
+    phaseId: string,
+    level: number
+) {
+    const response = await api.post(
+        `/draws/phase/${phaseId}/reroll`,
+        { level }
+    );
+
+    return response.data;
+}

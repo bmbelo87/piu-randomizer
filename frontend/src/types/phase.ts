@@ -1,6 +1,7 @@
 export interface Phase {
     id: string;
     name: string;
+    order: number;
     championshipId: string;
     mode: string;
     minLevel: number;

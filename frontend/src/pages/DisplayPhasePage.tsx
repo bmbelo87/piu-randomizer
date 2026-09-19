@@ -13,6 +13,7 @@ interface DrawResult {
         level: number;
     }[];
     seed: string;
+    rerollLevel?: number;
 }
 
 export default function DisplayPhasePage() {
@@ -42,7 +43,8 @@ export default function DisplayPhasePage() {
 
             setDrawResult({
                 draws: message.draws,
-                seed: message.seed
+                seed: message.seed,
+                rerollLevel: message.rerollLevel
             });
             setShowDrawModal(true);
         };
@@ -129,6 +131,7 @@ export default function DisplayPhasePage() {
                             draws={drawResult.draws}
                             availableCharts={phase.availableCharts}
                             audioContext={audioReady ? audioContext : null}
+                            rerollLevel={drawResult.rerollLevel}
                             onComplete={() => setShowDrawModal(false)}
                         />
                     </div>

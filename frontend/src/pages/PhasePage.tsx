@@ -13,7 +13,8 @@ import {
 } from "react";
 
 import {
-    drawCharts
+    drawCharts,
+    rerollChart
 } from "../hooks/useDraw";
 
 import AddChartModal from "../components/AddChartModal";
@@ -83,6 +84,11 @@ export default function PhasePage() {
         isActivePhase,
         setIsActivePhase
     ] = useState(false);
+
+    const [
+        rerollingLevel,
+        setRerollingLevel
+    ] = useState<number | null>(null);
 
     const [
         allowRepeats,
@@ -197,7 +203,8 @@ export default function PhasePage() {
 
             channel.postMessage({
                 draws: result.draws,
-                seed: result.seed
+                seed: result.seed,
+                rerollLevel: result.rerollLevel
             });
 
             channel.close();
@@ -214,6 +221,45 @@ export default function PhasePage() {
                 false;
 
             setDrawing(false);
+        }
+    }
+
+    async function handleReroll(level: number) {
+        if (rerollingLevel !== null) return;
+
+        setRerollingLevel(level);
+
+        try {
+            const result = await rerollChart(
+                phase!.id,
+                level
+            );
+            const rerollResult = {
+                ...result,
+                rerollLevel: level,
+                draws: result.draws.filter(
+                    (draw: { level: number }) =>
+                        draw.level === level
+                )
+            };
+
+            setDrawResult(rerollResult);
+            setShowDrawModal(true);
+            await reload();
+
+            const channel = new BroadcastChannel(
+                "piu-randomizer-draw"
+            );
+            channel.postMessage({
+                draws: rerollResult.draws,
+                seed: rerollResult.seed,
+                rerollLevel: level
+            });
+            channel.close();
+        } catch {
+            alert("Não foi possível realizar o reroll");
+        } finally {
+            setRerollingLevel(null);
         }
     }
 
@@ -356,9 +402,13 @@ export default function PhasePage() {
             (a, b) =>
                 a.chart.level - b.chart.level ||
                 a.chart.song.title.localeCompare(
-                    b.chart.song.title
+                b.chart.song.title
                 )
         );
+
+    const rerollAllowed =
+        phase.order > 1 &&
+        !/final/i.test(phase.name);
 
     return (
 
@@ -737,18 +787,31 @@ export default function PhasePage() {
                                     rounded-xl
                                 "
                             >
+                                <div className="flex items-center justify-between gap-4">
+                                    <span>
+                                        {draw.chart.song.title}
+                                        {" - "}
+                                        {draw.chart.mode === "X2"
+                                            ? "X2"
+                                            : `${draw.chart.mode} ${draw.chart.level}`}
+                                    </span>
 
-                                {
-                                    draw.chart.song.title
-                                }
-
-                                {" - "}
-
-                                {
-                                    draw.chart.mode === "X2"
-                                        ? "X2"
-                                        : `${draw.chart.mode} ${draw.chart.level}`
-                                }
+                                    {rerollAllowed && (
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleReroll(draw.chart.level)}
+                                            disabled={
+                                                rerollingLevel !== null ||
+                                                (requiresActivation && !isActivePhase)
+                                            }
+                                            className="shrink-0 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-[10px] font-black tracking-[0.12em] text-cyan-200 transition hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-40"
+                                        >
+                                            {rerollingLevel === draw.chart.level
+                                                ? "REROLLING..."
+                                                : "REROLL"}
+                                        </button>
+                                    )}
+                                </div>
 
                             </div>
                         )

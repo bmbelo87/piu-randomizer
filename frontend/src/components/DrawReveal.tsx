@@ -44,6 +44,7 @@ interface DrawRevealProps {
         }[];
 
     audioContext?: AudioContext | null;
+    rerollLevel?: number;
     onComplete?: () => void;
 }
 
@@ -51,6 +52,7 @@ export default function DrawReveal({
     draws,
     availableCharts,
     audioContext,
+    rerollLevel,
     onComplete
 }: DrawRevealProps) {
 
@@ -65,6 +67,12 @@ export default function DrawReveal({
                         )
                 ),
             [draws]
+        );
+
+    const visibleDraws = rerollLevel === undefined
+        ? sortedDraws
+        : sortedDraws.filter(
+            draw => draw.level === rerollLevel
         );
 
     const [
@@ -115,7 +123,11 @@ export default function DrawReveal({
         let cancelled = false;
         const timers: number[] = [];
 
-        const sorted = sortedDraws;
+        const sorted = rerollLevel === undefined
+            ? sortedDraws
+            : sortedDraws.filter(
+                draw => draw.level === rerollLevel
+            );
 
         const buildSpinReel = () => {
             const base = Array.from(
@@ -136,14 +148,22 @@ export default function DrawReveal({
             return [...base, ...base];
         };
 
-        const built = sorted.map(() => buildSpinReel());
+        const built = sorted.map(draw =>
+            rerollLevel !== undefined &&
+            draw.level !== rerollLevel
+                ? [draw.bannerPath]
+                : buildSpinReel()
+        );
         const listRef = {
             current: built
         };
         const positionRef = {
             current: sorted.map(() => 0)
         };
-        const stopped = sorted.map(() => false);
+        const stopped = sorted.map(draw =>
+            rerollLevel !== undefined &&
+            draw.level !== rerollLevel
+        );
         const stopPromises: Array<Promise<void> | null> =
             sorted.map(() => null);
 
@@ -256,9 +276,22 @@ export default function DrawReveal({
 
         animationFrame = window.requestAnimationFrame(spinFrame);
 
+        const revealIndexes = rerollLevel === undefined
+            ? sorted.map((_, index) => index)
+            : sorted
+                .map((draw, index) =>
+                    draw.level === rerollLevel ? index : -1
+                )
+                .filter(index => index >= 0);
+
         const revealLoop =
-            async (index: number) => {
-                if (cancelled || index >= sorted.length) return;
+            async (sequenceIndex: number) => {
+                if (
+                    cancelled ||
+                    sequenceIndex >= revealIndexes.length
+                ) return;
+
+                const index = revealIndexes[sequenceIndex];
 
                 await stopReel(index, 0);
 
@@ -271,9 +304,9 @@ export default function DrawReveal({
                     return updated;
                 });
 
-                if (index + 1 < sorted.length) {
+                if (sequenceIndex + 1 < revealIndexes.length) {
                     stopReel(
-                        index + 1,
+                        revealIndexes[sequenceIndex + 1],
                         NEXT_STOP_DELAY
                     );
                 }
@@ -312,14 +345,14 @@ export default function DrawReveal({
 
                 setActiveReveal(null);
 
-                if (index === sorted.length - 1) {
+                if (sequenceIndex === revealIndexes.length - 1) {
                     onComplete?.();
                     return;
                 }
 
                 timers.push(
                     setTimeout(
-                        () => revealLoop(index + 1),
+                        () => revealLoop(sequenceIndex + 1),
                         PREVIEW_GAP
                     )
                 );
@@ -439,7 +472,7 @@ export default function DrawReveal({
         >
 
             {
-                sortedDraws.map (
+                visibleDraws.map (
                     (draw, index) => (
 
                         <div

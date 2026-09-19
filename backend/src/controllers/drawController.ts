@@ -258,3 +258,116 @@ export async function drawCharts(
         
     }
 }
+
+export async function rerollChart(
+    req: Request,
+    res: Response
+) {
+    try {
+        const phaseId = req.params.id as string;
+        const level = Number(req.body.level);
+
+        const phase = await prisma.phase.findUnique({
+            where: { id: phaseId },
+            include: {
+                availableCharts: {
+                    include: {
+                        chart: {
+                            include: { song: true }
+                        }
+                    }
+                },
+                draws: {
+                    include: {
+                        chart: {
+                            include: { song: true }
+                        }
+                    },
+                    orderBy: { round: "asc" }
+                }
+            }
+        });
+
+        if (!phase) {
+            return res.status(404).json({ error: "Phase not found" });
+        }
+
+        if (phase.order <= 1 || /final/i.test(phase.name)) {
+            return res.status(400).json({
+                error: "Reroll is only available after the first phase and before the final"
+            });
+        }
+
+        const championship = await prisma.championship.findFirst({
+            where: { phases: { some: { id: phaseId } } }
+        });
+
+        if (!championship) {
+            return res.status(400).json({
+                error: "Phase not found in any championship"
+            });
+        }
+
+        if (
+            championship.requiresActivation &&
+            championship.currentPhaseId !== phaseId
+        ) {
+            return res.status(400).json({
+                error: "Phase is not the active phase"
+            });
+        }
+
+        if (!Number.isInteger(level)) {
+            return res.status(400).json({ error: "A valid level is required" });
+        }
+
+        const targetDraw = phase.draws.find(
+            draw => draw.chart.level === level
+        );
+        const levelCharts = phase.availableCharts.filter(
+            phaseChart => phaseChart.chart.level === level
+        );
+
+        if (!targetDraw || levelCharts.length === 0) {
+            return res.status(400).json({
+                error: "The selected level is not available for reroll"
+            });
+        }
+
+        const selected =
+            levelCharts[crypto.randomInt(0, levelCharts.length)];
+        const seed = crypto.randomBytes(16).toString("hex");
+
+        await prisma.draw.update({
+            where: { id: targetDraw.id },
+            data: {
+                chartId: selected.chartId,
+                seed
+            }
+        });
+
+        const draws = await prisma.draw.findMany({
+            where: { phaseId },
+            include: {
+                chart: {
+                    include: { song: true }
+                }
+            },
+            orderBy: { round: "asc" }
+        });
+
+        return res.json({
+            seed,
+            rerollLevel: level,
+            draws: draws.map(draw => ({
+                song: draw.chart.song.title,
+                bannerPath: draw.chart.song.bannerPath,
+                previewPath: draw.chart.song.previewPath ?? null,
+                mode: draw.chart.mode,
+                level: draw.chart.level
+            }))
+        });
+    } catch {
+        return res.status(500).json({ error: "Internal server error" });
+    }
+}
