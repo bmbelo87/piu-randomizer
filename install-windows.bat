@@ -56,8 +56,12 @@ if errorlevel 1 (
         winget install --id PostgreSQL.PostgreSQL.16 --exact --source winget --accept-package-agreements --accept-source-agreements
     )
 
-    for %%V in (17 16 15 14) do if exist "C:\Program Files\PostgreSQL\%%V\bin\psql.exe" set "PATH=C:\Program Files\PostgreSQL\%%V\bin;%%PATH%%"
 )
+
+set "PG_BIN="
+for %%V in (18 17 16 15 14) do if exist "C:\Program Files\PostgreSQL\%%V\bin\psql.exe" set "PG_BIN=C:\Program Files\PostgreSQL\%%V\bin"
+if not defined PG_BIN for /f "delims=" %%P in ('where /r "C:\Program Files\PostgreSQL" psql.exe 2^>nul') do if not defined PG_BIN set "PG_BIN=%%~dpP"
+if defined PG_BIN set "PATH=%PG_BIN%;%PATH%"
 
 where psql >nul 2>nul
 if errorlevel 1 (
