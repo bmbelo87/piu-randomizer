@@ -47,11 +47,25 @@ export async function drawCharts(
         const championship =
             await prisma.championship.findFirst({
                 where: {
-                    currentPhaseId: phaseId
+                    phases: {
+                        some: {
+                            id: phaseId
+                        }
+                    }
                 }
             });
 
         if (!championship) {
+            return res.status(400).json({
+                error:
+                    "Phase not found in any championship"
+            });
+        }
+
+        if (
+            championship.requiresActivation &&
+            championship.currentPhaseId !== phaseId
+        ) {
             return res.status(400).json({
                 error:
                     "Phase is not the active phase"
@@ -79,100 +93,139 @@ export async function drawCharts(
             });
         }
 
-        const chartsByLevel =
-            new Map<number, typeof availableCharts>();
-
-        for (
-            const phaseChart
-            of availableCharts
-        ) {
-            const level =
-                phaseChart.chart.level;
-
-            const list =
-                chartsByLevel.get(level) ?? [];
-
-            list.push(phaseChart);
-
-            chartsByLevel.set(
-                level,
-                list
-            );
-        }
-
-        const levels =
-            Array.from(
-                chartsByLevel.keys()
-            );
-
-        if (
-            levels.length < amount
-        ) {
-            return res.status(400).json({
-                error: "Not enough distinct levels available"
-            });
-        }
-
-        for (let i = levels.length - 1; i > 0; i--) {
-            const j =
-                crypto.randomInt(0, i + 1);
-
-            const temp = levels[i];
-            levels[i] = levels[j];
-            levels[j] = temp;
-        }
-
         const drawnCharts = [];
 
-        const seed = 
+        const seed =
         crypto.randomBytes(16)
         .toString("hex");
 
-        for (let i = 0; i < amount; i++ )
-        {
-            const level =
-                levels[
+        if (
+            championship.allowRepeats
+        ) {
+            const pool = [ ...availableCharts ];
+
+            for (let i = 0; i < amount; i++ ) {
+                const randomIndex =
                     crypto.randomInt(
                         0,
-                        levels.length
-                    )
-                ];
+                        pool.length
+                    );
 
-            const levelCharts =
-                chartsByLevel.get(level)!;
+                const selected =
+                    pool[randomIndex];
 
-            const randomIndex =
-                crypto.randomInt(
-                    0,
-                    levelCharts.length
+                pool.splice(
+                    pool.indexOf(selected),
+                    1
                 );
 
-            const selected =
-                levelCharts[randomIndex];
+                drawnCharts.push(selected);
 
-            drawnCharts.push(selected);
+                await prisma.draw.create({
+                    data: {
 
-            chartsByLevel.delete(level);
+                        round:
+                            phase.draws.length + i + 1,
 
-            levels.splice(
-                levels.indexOf(level),
-                1
-            );
+                        seed,
 
-            await prisma.draw.create({
-                data: {
+                        phaseId,
 
-                    round: 
-                        phase.draws.length + i + 1,
+                        chartId:
+                            selected.chartId
+                    }
+                });
+            }
+        } else {
+            const chartsByLevel =
+                new Map<number, typeof availableCharts>();
 
-                    seed,
+            for (
+                const phaseChart
+                of availableCharts
+            ) {
+                const level =
+                    phaseChart.chart.level;
 
-                    phaseId,
+                const list =
+                    chartsByLevel.get(level) ?? [];
 
-                    chartId:
-                        selected.chartId
-                }
-            });
+                list.push(phaseChart);
+
+                chartsByLevel.set(
+                    level,
+                    list
+                );
+            }
+
+            const levels =
+                Array.from(
+                    chartsByLevel.keys()
+                );
+
+            if (
+                levels.length < amount
+            ) {
+                return res.status(400).json({
+                    error: "Not enough distinct levels available"
+                });
+            }
+
+            for (let i = levels.length - 1; i > 0; i--) {
+                const j =
+                    crypto.randomInt(0, i + 1);
+
+                const temp = levels[i];
+                levels[i] = levels[j];
+                levels[j] = temp;
+            }
+
+            for (let i = 0; i < amount; i++ )
+            {
+                const level =
+                    levels[
+                        crypto.randomInt(
+                            0,
+                            levels.length
+                        )
+                    ];
+
+                const levelCharts =
+                    chartsByLevel.get(level)!;
+
+                const randomIndex =
+                    crypto.randomInt(
+                        0,
+                        levelCharts.length
+                    );
+
+                const selected =
+                    levelCharts[randomIndex];
+
+                drawnCharts.push(selected);
+
+                chartsByLevel.delete(level);
+
+                levels.splice(
+                    levels.indexOf(level),
+                    1
+                );
+
+                await prisma.draw.create({
+                    data: {
+
+                        round:
+                            phase.draws.length + i + 1,
+
+                        seed,
+
+                        phaseId,
+
+                        chartId:
+                            selected.chartId
+                    }
+                });
+            }
         }
 
         return res.json({

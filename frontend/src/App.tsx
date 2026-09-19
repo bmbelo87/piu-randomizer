@@ -13,13 +13,16 @@ import CreateChampionshipPage from "./pages/CreateChampionshipPage";
 import DisplayPhasePage from "./pages/DisplayPhasePage";
 
 import MusicPoolPage from "./pages/MusicPoolPage";
+import AmbientArrows from "./components/AmbientArrows";
 
 export default function App(){
 
   return (
 
     <BrowserRouter>
-      
+      <div className="relative min-h-screen">
+        <AmbientArrows />
+        <div className="relative z-10">
       <Routes>
 
         <Route
@@ -57,6 +60,8 @@ export default function App(){
             element={<MusicPoolPage />}
           />
       </Routes>
+        </div>
+      </div>
 
 
     </BrowserRouter>

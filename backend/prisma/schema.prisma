@@ -18,6 +18,9 @@ model Championship {
   createdAt   DateTime    @default(now())
   order       Int         @default(0)
 
+  allowRepeats        Boolean     @default(false)
+  requiresActivation  Boolean     @default(true)
+
   phases      Phase[]
 
   currentPhaseId  String?

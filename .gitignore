@@ -141,5 +141,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
-/backend/uploads/banners
-/backend/uploads/previewsongs
+/backend/uploads/banners/*
+!/backend/uploads/banners/*.png
+.runtime/

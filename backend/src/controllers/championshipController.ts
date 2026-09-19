@@ -7,11 +7,17 @@ export async function createChampionship(
     res: Response
 ) {
     try {
-        const {name, phases } = req.body;
+        const {name, phases, allowRepeats, requiresActivation } = req.body;
 
         const championship = await prisma.championship.create({
             data: {
                 name, 
+
+                allowRepeats:
+                    allowRepeats ?? false,
+
+                requiresActivation:
+                    requiresActivation ?? true,
 
                 order:
                     (await getNextOrder()),

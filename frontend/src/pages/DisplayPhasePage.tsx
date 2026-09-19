@@ -1,514 +1,145 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+
 import { useDisplay } from "../hooks/useDisplay";
 import DrawReveal from "../components/DrawReveal";
+import { StepBadge } from "../components/CompetitionComponents";
+
+interface DrawResult {
+    draws: {
+        song: string;
+        bannerPath: string;
+        previewPath: string | null;
+        mode: string;
+        level: number;
+    }[];
+    seed: string;
+}
 
 export default function DisplayPhasePage() {
-
-    const {
-        data,
-        loading,
-        refetch
-    } = useDisplay();
-
-    const [
-        showDrawModal,
-        setShowDrawModal
-    ] = useState(false);
-
-    const [
-        drawResult,
-        setDrawResult
-    ] = useState<{
-        draws: {
-            song: string;
-            bannerPath: string;
-            previewPath: string | null;
-            mode: string;
-            level: number;
-        }[];
-        seed: string;
-    } | null>(null);
-
-    const [
-        audioReady,
-        setAudioReady
-    ] = useState(false);
-
-    const audioContextRef =
-        useRef<AudioContext | null>(null);
+    const { data, loading, refetch } = useDisplay();
+    const [showDrawModal, setShowDrawModal] = useState(false);
+    const [drawResult, setDrawResult] = useState<DrawResult | null>(null);
+    const [audioReady, setAudioReady] = useState(false);
+    const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
 
     function handleEnableAudio() {
-
-        const ctx =
-            new AudioContext();
-
-        audioContextRef.current =
-            ctx;
-
+        setAudioContext(new AudioContext());
         setAudioReady(true);
     }
 
     useEffect(() => {
-        const channel =
-            new BroadcastChannel(
-                "piu-randomizer-draw"
-            );
+        const channel = new BroadcastChannel("piu-randomizer-draw");
 
-        channel.onmessage = (
-            event
-        ) => {
-            const msg = event.data;
-
+        channel.onmessage = event => {
+            const message = event.data;
             refetch();
 
-            if (
-                msg.type ===
-                "phase-update"
-            ) {
+            if (message.type === "phase-update") {
                 setShowDrawModal(false);
                 setDrawResult(null);
                 return;
             }
 
             setDrawResult({
-                draws: msg.draws,
-                seed: msg.seed
+                draws: message.draws,
+                seed: message.seed
             });
-
             setShowDrawModal(true);
         };
 
-        return () =>
-            channel.close();
-
+        return () => channel.close();
     }, [refetch]);
 
-    if (
-        loading ||
-        !data
-    ) {
-
+    if (loading || !data) {
         return (
-            <div>
-                Loading...
+            <div className="flex min-h-screen items-center justify-center bg-[#07090d] text-sm font-black tracking-[0.2em] text-zinc-400">
+                PREPARANDO TELA DO CAMPEONATO...
             </div>
         );
     }
 
-    const {
-        championship,
-        phase
-    } = data;
-
-    const allPhases =
-        data.allPhases ?? [];
-
-    const isActive =
-        championship.currentPhaseId
-            ? true
-            : false;
-
-    let endState:
-        "none"
-        | "championship-ended"
-        = "none";
-
-    if (!isActive) {
-
-        const anyDraws =
-            allPhases.some(
-                p => p.drawCount > 0
-            );
-
-        if (anyDraws) {
-
-            const maxOrder =
-                Math.max(
-                    ...allPhases.map(
-                        p => p.order
-                    )
-                );
-
-            const lastPhase =
-                allPhases.find(
-                    p =>
-                        p.order === maxOrder
-                );
-
-            if (
-                lastPhase &&
-                lastPhase.drawCount > 0
-            ) {
-                endState =
-                    "championship-ended";
-            }
-        }
-    }
-
-    const ended =
-        endState !== "none";
-
-    function renderContent() {
-
-        if (ended) {
-
-            return (
-                <div
-                    className="
-                        flex
-                        flex-col
-                        items-center
-                        justify-center
-
-                        min-h-[60vh]
-                    "
-                >
-                    <div
-                        className="
-                            text-6xl
-                            font-black
-                            text-center
-                            mb-6
-                        "
-                    >
-                        🏆
-                    </div>
-                    <div
-                        className="
-                            text-4xl
-                            font-bold
-                            text-center
-                        "
-                    >
-                        Campeonato Encerrado
-                    </div>
-                </div>
-            );
-        }
-
-        if (!phase) {
-
-            if (
-                !ended &&
-                allPhases.length > 0
-            ) {
-                return (
-                    <div
-                        className="
-                            flex
-                            flex-col
-                            items-center
-                            justify-center
-                            min-h-[60vh]
-                        "
-                    >
-                        <div
-                            className="
-                                text-4xl
-                                font-bold
-                                text-center
-                            "
-                        >
-                            Aguardando...
-                        </div>
-                    </div>
-                );
-            }
-
-            return null;
-        }
-
-        return (
-            <>
-                <div
-                    className="
-                        text-4xl
-
-                        font-bold
-
-                        mb-4
-                    "
-                >
-                    {phase.name}
-                </div>
-                <div 
-                    className="
-                        text-center
-
-                        text-2xl
-
-                        text-zinc-400
-
-                        mb-12
-                    "
-                >
-
-                    {phase.mode}
-
-                    {" • "}
-
-                    {phase.minLevel}
-
-                    {" ~ "}
-
-                    {phase.maxLevel}
-
-                </div>
-
-                <div
-                    className="
-                        border-t
-
-                        border-zinc-700
-
-                        mb-8
-                    "
-                />
-
-                <div
-                    className="
-                        text-center
-
-                        text-4xl
-
-                        font-bold
-
-                        mb-8
-                    "
-                >
-                    DRAW RESULTS
-                </div>
-
-                <div 
-                    className="
-                        flex
-                        flex-wrap
-
-                        justify-center
-
-                        gap-8
-                    "    
-                >
-                    {
-                        [...phase.draws]
-                            .sort(
-                                (a, b) =>
-                                    a.chart.level - b.chart.level ||
-                                    a.chart.song.title.localeCompare(
-                                        b.chart.song.title
-                                    )
-                            )
-                            .map(
-                            draw => (
-
-                                <div
-                                    key={
-                                        draw.id
-                                    }
-                                    
-                                    className="
-                                        w-[400px]
-                                    "
-                                >
-
-                                    <img
-                                        src={
-                                            `http://localhost:3000/banners/${draw.chart.song.bannerPath}`
-                                        }
-                                        
-                                        alt={
-                                            draw.chart.song.title
-                                        }
-
-                                        className="
-                                            w-full
-
-                                            rounded-xl
-
-                                            border
-                                            border-zinc-700
-                                        "
-                                    />
-
-                                    <div 
-                                        className="
-                                            mt-3
-                                            
-                                            text-center
-                                            
-                                            text-2xl
-                                            
-                                            font-bold
-                                        "
-                                    >
-                                        {
-                                            draw.chart.song.title
-                                        }
-                                    </div>
-
-                                    <div
-                                        className="
-                                            text-center
-                                            
-                                            text-zinc-400
-                                            
-                                            text-lg
-                                        "
-                                    >
-                                        {
-                                            draw.chart.mode
-                                        }
-                                        {" "}
-                                        {
-                                            draw.chart.level
-                                        }
-                                    </div>
-
-                                </div>
-                            )
-                        )
-                    }
-
-                </div>
-            </>
-        );
-    }
+    const { championship, phase } = data;
+    const allPhases = data.allPhases ?? [];
+    const isActive = Boolean(championship.currentPhaseId);
+    const lastPhase = [...allPhases].sort((a, b) => b.order - a.order)[0];
+    const ended = !isActive && Boolean(lastPhase?.drawCount);
 
     return (
+        <div className="min-h-screen bg-transparent text-white">
+            <div className="mx-auto flex min-h-screen max-w-[1800px] flex-col px-6 py-6 lg:px-12 lg:py-8">
+                <header className="flex items-center justify-between border-b border-white/[0.08] pb-5">
+                    <div>
+                        <p className="text-[10px] font-black tracking-[0.3em] text-cyan-300/70">GAUCHONES 2026 · LIVE BOARD</p>
+                        <h1 className="mt-2 text-xl font-black tracking-tight sm:text-2xl">{championship.name}</h1>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="hidden text-[10px] font-black tracking-[0.18em] text-zinc-500 sm:block">TELA DE PALCO</span>
+                        <span className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-black tracking-[0.16em] ${isActive ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-300" : "border-zinc-700 bg-zinc-900 text-zinc-500"}`}>
+                            <span>●</span>{isActive ? "AO VIVO" : "AGUARDANDO"}
+                        </span>
+                    </div>
+                </header>
 
-        <div
-            className="
-                min-h-screen
+                <main className="flex flex-1 flex-col justify-center py-10">
+                    {ended ? (
+                        <div className="mx-auto max-w-2xl text-center">
+                            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl border border-cyan-300/20 bg-cyan-300/10 text-5xl">🏆</div>
+                            <h2 className="mt-8 text-4xl font-black tracking-tight sm:text-6xl">Campeonato encerrado</h2>
+                            <p className="mt-4 text-lg text-zinc-400">Todas as fases desta categoria foram concluídas.</p>
+                        </div>
+                    ) : !phase ? (
+                        <div className="mx-auto max-w-2xl text-center">
+                            <span className="text-6xl text-cyan-300/60">◌</span>
+                            <h2 className="mt-6 text-4xl font-black">Aguardando próxima fase</h2>
+                            <p className="mt-3 text-lg text-zinc-500">A operação será atualizada automaticamente.</p>
+                        </div>
+                    ) : (
+                        <section className="mx-auto w-full max-w-[1500px]">
+                            <div className="mb-10 text-center">
+                                <p className="text-[11px] font-black tracking-[0.3em] text-cyan-300/80">FASE EM ANDAMENTO</p>
+                                <h2 className="mt-4 text-4xl font-black tracking-[-0.03em] sm:text-6xl">{phase.name}</h2>
+                                <p className="mt-3 text-lg font-semibold text-zinc-400">
+                                    {phase.mode === "X2" ? "CO-OP X2" : `${phase.mode} · ${phase.minLevel}${phase.maxLevel == null ? "+" : `–${phase.maxLevel}`}`}
+                                </p>
+                            </div>
 
-                bg-black
-
-                text-white
-
-                p-8
-            "
-        >
-
-            <div
-                className="
-                    max-w-7xl
-
-                    mx-auto
-                "
-            >
-
-                <h1
-                className="
-                    text-5xl
-                    font-bold
-                    mb-12
-                "
-                >
-                    {championship?.name}
-                </h1>
-
-                {renderContent()}
-                
+                            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                                {[...phase.draws]
+                                    .sort((a, b) => a.chart.level - b.chart.level || a.chart.song.title.localeCompare(b.chart.song.title))
+                                    .map(draw => (
+                                        <article key={draw.id} className="overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d1118] shadow-2xl">
+                                            <img src={`http://localhost:3000/banners/${encodeURIComponent(draw.chart.song.bannerPath)}`} alt={draw.chart.song.title} className="aspect-video w-full object-cover" />
+                                            <div className="flex items-center justify-between gap-4 p-5">
+                                                <h3 className="text-lg font-black leading-tight">{draw.chart.song.title}</h3>
+                                                <StepBadge mode={draw.chart.mode} level={draw.chart.level} className="h-12 w-12" />
+                                            </div>
+                                        </article>
+                                    ))}
+                            </div>
+                        </section>
+                    )}
+                </main>
             </div>
 
-        {
-            !ended &&
-            showDrawModal &&
-            drawResult &&
-            phase && (
-                <div
-                    className="
-                        fixed
-                        inset-0
-                        bg-black/80
-
-                        flex
-                        items-center
-                        justify-center
-
-                        z-50
-                    "
-                >
-
-                    <div
-                        className="
-                            bg-zinc-950
-
-                            rounded-2xl
-                            
-                            p-8
-
-                            w-full
-
-                            mx-4
-                        "
-                    >
-
+            {!ended && showDrawModal && drawResult && phase && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#05070b]/95 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-[1800px] rounded-3xl border border-cyan-300/20 bg-[#0b0e14] p-5 shadow-2xl sm:p-8">
                         <DrawReveal
-                            key={
-                                drawResult.seed
-                            }
-
-                            draws={
-                                drawResult.draws
-                            }
-
-                            availableCharts={
-                                phase
-                                    .availableCharts
-                            }
-
-                            audioContext={
-                                audioReady
-                                    ? audioContextRef
-                                        .current
-                                    : null
-                            }
+                            key={drawResult.seed}
+                            draws={drawResult.draws}
+                            availableCharts={phase.availableCharts}
+                            audioContext={audioReady ? audioContext : null}
+                            onComplete={() => setShowDrawModal(false)}
                         />
-
                     </div>
-
                 </div>
-            )
-        }
+            )}
 
-        {
-            !audioReady && (
-                <div
-                    onClick={
-                        handleEnableAudio
-                    }
-
-                    className="
-                        fixed
-                        inset-0
-                        bg-black/90
-
-                        flex
-                        items-center
-                        justify-center
-
-                        z-[100]
-
-                        cursor-pointer
-                    "
-                >
-
-                    <div
-                        className="
-                            text-4xl
-                            font-bold
-                            text-center
-
-                            px-8
-                        "
-                    >
-                        Clique para ativar o áudio
-                    </div>
-
-                </div>
-            )
-        }
+            {!audioReady && (
+                <button type="button" onClick={handleEnableAudio} className="fixed inset-0 z-[100] flex cursor-pointer items-center justify-center bg-[#05070b]/95 p-6 text-center backdrop-blur-sm">
+                    <span className="rounded-3xl border border-cyan-300/30 bg-cyan-300/10 px-8 py-7 text-xl font-black text-cyan-100 shadow-2xl sm:text-3xl">Clique para ativar o áudio<br /><span className="mt-2 block text-sm font-semibold text-cyan-200/60">A tela do sorteador precisa de uma interação inicial</span></span>
+                </button>
+            )}
         </div>
     );
-
 }

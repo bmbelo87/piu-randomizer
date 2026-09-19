@@ -2,11 +2,21 @@ import {
     useEffect,
     useState,
     useRef,
-    useCallback,
     useMemo
 } from "react";
 
 import { playPreview } from "../utils/drawAudio";
+import { StepBadge } from "./CompetitionComponents";
+
+const BANNER_HEIGHT = 270;
+const SPIN_ITEMS = 30;
+const TICK_MS = 150;
+const SPIN_SPEED = BANNER_HEIGHT / TICK_MS;
+const SETTLE_MS = 2200;
+const STOP_AHEAD_ITEMS = 8;
+const REVEAL_DELAY = 4500;
+const NEXT_STOP_DELAY = 5000;
+const PREVIEW_GAP = 600;
 
 interface DrawRevealProps {
 
@@ -34,12 +44,14 @@ interface DrawRevealProps {
         }[];
 
     audioContext?: AudioContext | null;
+    onComplete?: () => void;
 }
 
 export default function DrawReveal({
     draws,
     availableCharts,
-    audioContext
+    audioContext,
+    onComplete
 }: DrawRevealProps) {
 
     const sortedDraws =
@@ -54,15 +66,6 @@ export default function DrawReveal({
                 ),
             [draws]
         );
-
-    const [
-        visible,
-        setVisible
-    ] = useState(
-        sortedDraws.length > 0
-            ? 0
-            : 0
-    );
 
     const [
         countdown,
@@ -85,196 +88,279 @@ export default function DrawReveal({
     ] = useState<number[]>([]);
 
     const [
+        rouletteDuration,
+        setRouletteDuration
+    ] = useState<number[]>([]);
+
+    const [
         activeReveal,
         setActiveReveal
     ] = useState<number | null>(null);
 
+    const [
+        previewed,
+        setPreviewed
+    ] = useState<boolean[]>([]);
+
     const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
-
-    const revealNextCard = useCallback(async (index: number) => {
-        if (index >= sortedDraws.length) return;
-
-        setActiveReveal(index);
-
-        const previewPath = sortedDraws[index].previewPath;
-        if (previewPath && audioContext) {
-            audioSourceRef.current?.stop();
-
-            await playPreview(
-                audioContext,
-                `http://localhost:3000/previewsongs/${previewPath}`
-            );
-
-            setActiveReveal(null);
-            setTimeout(() => revealNextCard(index + 1), 500);
-        } else if (previewPath) {
-            const audio = new Audio(`http://localhost:3000/previewsongs/${previewPath}`);
-            audio.volume = 0.3;
-            audio.play();
-
-            await new Promise<void>(resolve => {
-                audio.onended = () => resolve();
-            });
-
-            setActiveReveal(null);
-            setTimeout(() => revealNextCard(index + 1), 500);
-        } else {
-            await new Promise(resolve =>
-                setTimeout(resolve, 3000)
-            );
-            setActiveReveal(null);
-            setTimeout(() => revealNextCard(index + 1), 500);
-        }
-    }, [sortedDraws, audioContext]);
 
     useEffect(() => {
         if (!started) return;
 
-        const revealTimer = setTimeout(() => {
-            revealNextCard(0);
-        }, 5700);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+
+        const chartsRef =
+            availableCharts;
+
+        let cancelled = false;
+        const timers: number[] = [];
+
+        const sorted = sortedDraws;
+
+        const buildSpinReel = () => {
+            const base = Array.from(
+                { length: SPIN_ITEMS },
+                () => {
+                    const randomChart =
+                        chartsRef[
+                            Math.floor(
+                                Math.random() *
+                                chartsRef.length
+                            )
+                        ];
+
+                    return randomChart.chart.song.bannerPath;
+                }
+            );
+
+            return [...base, ...base];
+        };
+
+        const built = sorted.map(() => buildSpinReel());
+        const listRef = {
+            current: built
+        };
+        const positionRef = {
+            current: sorted.map(() => 0)
+        };
+        const stopped = sorted.map(() => false);
+        const stopPromises: Array<Promise<void> | null> =
+            sorted.map(() => null);
+
+        setRouletteList(built);
+        setRoulettePosition(positionRef.current);
+        setRouletteDuration(
+            sorted.map(() => 0)
+        );
+
+        const updatePosition =
+            (index: number, value: number) =>
+                setRoulettePosition(previous => {
+                    const updated = [...previous];
+                    updated[index] = value;
+                    positionRef.current = updated;
+                    return updated;
+                });
+
+        const stopReel =
+            (index: number, delay: number) => {
+                if (stopPromises[index]) {
+                    return stopPromises[index];
+                }
+
+                const stopPromise = new Promise<void>(resolve => {
+                    timers.push(
+                        setTimeout(() => {
+                            if (stopped[index]) {
+                                resolve();
+                                return;
+                            }
+
+                            stopped[index] = true;
+
+                            const base = listRef.current[index].slice(
+                                0,
+                                SPIN_ITEMS
+                            );
+                            const currentPosition =
+                                positionRef.current[index] ?? 0;
+                            const currentIndex = Math.floor(
+                                currentPosition / BANNER_HEIGHT
+                            );
+                            const landingIndex =
+                                currentIndex + STOP_AHEAD_ITEMS;
+                            const finalPosition =
+                                landingIndex * BANNER_HEIGHT;
+
+                            listRef.current[index] = Array.from(
+                                { length: landingIndex + 1 },
+                                (_, itemIndex) =>
+                                    itemIndex === landingIndex
+                                        ? sorted[index].bannerPath
+                                        : base[
+                                            itemIndex % base.length
+                                        ]
+                            );
+
+                            setRouletteList([
+                                ...listRef.current
+                            ]);
+                            setRouletteDuration(previous => {
+                                const updated = [...previous];
+                                updated[index] = SETTLE_MS;
+                                return updated;
+                            });
+                            updatePosition(
+                                index,
+                                finalPosition
+                            );
+
+                            timers.push(
+                                setTimeout(resolve, SETTLE_MS)
+                            );
+                        }, delay)
+                    );
+                });
+
+                stopPromises[index] = stopPromise;
+                return stopPromise;
+            };
+
+        const spinLoopHeight =
+            SPIN_ITEMS * 2 * BANNER_HEIGHT;
+        let lastTimestamp = 0;
+        let animationFrame = 0;
+
+        const spinFrame = (timestamp: number) => {
+            if (cancelled) return;
+
+            const elapsed = lastTimestamp === 0
+                ? 0
+                : timestamp - lastTimestamp;
+            lastTimestamp = timestamp;
+
+            const updated = [...positionRef.current];
+
+            sorted.forEach((_, index) => {
+                if (stopped[index]) return;
+
+                updated[index] =
+                    (updated[index] + elapsed * SPIN_SPEED) %
+                    spinLoopHeight;
+            });
+
+            positionRef.current = updated;
+            setRoulettePosition(updated);
+            animationFrame = window.requestAnimationFrame(spinFrame);
+        };
+
+        animationFrame = window.requestAnimationFrame(spinFrame);
+
+        const revealLoop =
+            async (index: number) => {
+                if (cancelled || index >= sorted.length) return;
+
+                await stopReel(index, 0);
+
+                if (cancelled) return;
+
+                setActiveReveal(index);
+                setPreviewed(previous => {
+                    const updated = [...previous];
+                    updated[index] = true;
+                    return updated;
+                });
+
+                if (index + 1 < sorted.length) {
+                    stopReel(
+                        index + 1,
+                        NEXT_STOP_DELAY
+                    );
+                }
+
+                const previewPath =
+                    sorted[index].previewPath;
+
+                if (previewPath && audioContext) {
+                    audioSourceRef.current?.stop();
+
+                    await playPreview(
+                        audioContext,
+                        `http://localhost:3000/previewsongs/${previewPath}`
+                    );
+                } else if (previewPath) {
+                    const audio =
+                        new Audio(
+                            `http://localhost:3000/previewsongs/${previewPath}`
+                        );
+                    audio.volume = 0.3;
+                    audio.play();
+
+                    await new Promise<void>(
+                        resolve => {
+                            audio.onended = () => resolve();
+                        }
+                    );
+                } else {
+                    await new Promise(
+                        resolve =>
+                            setTimeout(resolve, 3000)
+                    );
+                }
+
+                if (cancelled) return;
+
+                setActiveReveal(null);
+
+                if (index === sorted.length - 1) {
+                    onComplete?.();
+                    return;
+                }
+
+                timers.push(
+                    setTimeout(
+                        () => revealLoop(index + 1),
+                        PREVIEW_GAP
+                    )
+                );
+            };
+
+        timers.push(
+            setTimeout(
+                () => revealLoop(0),
+                REVEAL_DELAY
+            )
+        );
 
         return () => {
-            clearTimeout(revealTimer);
+            cancelled = true;
+            window.cancelAnimationFrame(animationFrame);
+            timers.forEach(clearTimeout);
             audioSourceRef.current?.stop();
         };
-    }, [started, revealNextCard]);
+    }, [started]);
 
     useEffect(() => {
-
-        console.log(
-            "EFFECT",
-            sortedDraws.length,
-            availableCharts.length
-        );
 
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setStarted(false);
 
-        setVisible(0);
-
         setCountdown(3);
 
-
-
-        const countdown3 = 
+        const countdown3 =
             setTimeout(() => {
                 setCountdown(2);
             }, 1000);
 
-        const countdown2 = 
+        const countdown2 =
             setTimeout(() => {
                 setCountdown(1);
             }, 2000);
 
         const startReveal =
             setTimeout(() => {
-
                 console.log("START REVEAL");
-
                 setStarted(true);
-
-                sortedDraws.forEach(
-                    (draw, index) => {
-
-                        console.log("DRAW", index, draw.song)
-                        
-                        const rouletteItems =
-                            Array.from(
-                                { length: 30 },
-                                () => {
-
-                                    const randomChart = 
-                                        availableCharts[
-                                            Math.floor(
-                                                Math.random() *
-                                                availableCharts.length
-                                            )
-                                        ];
-
-                                    return (
-                                        randomChart
-                                            .chart
-                                            .song
-                                            .bannerPath
-                                    );
-                                }
-                            );
-                        
-                        rouletteItems.push( 
-                            draw.bannerPath
-                        );
-
-                        setRouletteList(
-                            previous => {
-                                const updated =
-                                    [...previous];
-
-                                updated[index] =
-                                    rouletteItems;
-
-                                return updated;
-                            }
-                        );
-
-                        setRoulettePosition(
-                            previous => {
-                                const updated =
-                                    [...previous];
-
-                                updated[index] = 0;
-
-                                return updated;
-                            }
-                        );
-
-                        const finalPosition = 
-                        (
-                            rouletteItems.length - 1
-                        ) * 274;
-
-                        const overshootPosition =
-                            finalPosition + 25;
-
-                        setTimeout(() => {
-                            setRoulettePosition(
-                                previous => {
-
-                                    const updated =
-                                        [...previous];
-
-                                    updated[index] = 
-                                        overshootPosition;
-
-                                    return updated;
-                                }
-                            );
-                        }, 100);
-
-                        setTimeout(() => {
-                            setRoulettePosition(
-                                previous => {
-
-                                    const updated =
-                                        [...previous];
-
-                                    updated[index] =
-                                        finalPosition;
-                                
-                                    return updated;
-                                }
-                            )
-                        }, 5600)
-
-                        // setTimeout(() =>{
-                        //     setVisible(
-                        //         index + 1
-                        //     );
-                        // }, 5200);
-                     
-                    }
-                );
-                
             }, 3000);
 
         return () => {
@@ -307,8 +393,9 @@ export default function DrawReveal({
 
                 <div
                     className="
-                        text-3x1
-                        font-bold
+                        text-xs
+                        font-black
+                        tracking-[0.3em]
 
                         mb-6
                     "
@@ -322,6 +409,7 @@ export default function DrawReveal({
                         font-black
 
                         animate-pulse
+                        text-cyan-300
                     "
                 
                 >
@@ -340,7 +428,9 @@ export default function DrawReveal({
                 items-center
                 justify-center
 
-                gap-6
+                gap-10
+                max-w-full
+                overflow-x-auto
 
                 overflow-x-visible
 
@@ -356,16 +446,18 @@ export default function DrawReveal({
                             key = {index}
 
                             className={`
-                                bg-zinc-900
+                                bg-[#0d1118]
+                                border
+                                border-white/[0.08]
 
-                                rounded-xl
+                                rounded-2xl
 
                                 p-4
 
                                 flex-shrink-0
                                 
-                                w-100
-                                h-100
+                                w-[512px]
+                                h-[340px]
 
                                 flex
                                 items-center
@@ -380,8 +472,8 @@ export default function DrawReveal({
                                             z-10
                                             scale-125
                                             ring-4
-                                            ring-yellow-400
-                                            shadow-[0_0_40px_rgba(255,215,0,0.6)]
+                                            ring-cyan-300
+                                            shadow-[0_0_40px_rgba(103,232,249,0.25)]
                                         `
                                         : `
                                             border
@@ -394,9 +486,9 @@ export default function DrawReveal({
                                 className="
                                     relative
 
-                                    w-100
+                                    w-full
 
-                                    h-[274px]
+                                    h-[270px]
 
                                     overflow-hidden
 
@@ -409,13 +501,17 @@ export default function DrawReveal({
                                 <div
                                     className="
                                         transition-transform
-                                        ease-out
                                     "
 
                                     style={{
 
                                         transitionDuration:
-                                            "5.5s",
+                                            `${rouletteDuration[index] ?? 0}ms`,
+
+                                        transitionTimingFunction:
+                                            rouletteDuration[index] === SETTLE_MS
+                                                ? "ease-out"
+                                                : "linear",
 
                                         transform:
                                             `translateY(-${
@@ -437,14 +533,14 @@ export default function DrawReveal({
                                                     }
 
                                                     src={
-                                                        `http://localhost:3000/banners/${banner}`
+                                                         `http://localhost:3000/banners/${encodeURIComponent(banner)}`
                                                     }
 
                                                     alt="Roulette"
 
                                                     className="
-                                                        w-100
-                                                        h-[274px]
+                                                        w-[480px]
+                                                        h-[270px]
 
                                                         object-cover
                                                     "
@@ -457,39 +553,8 @@ export default function DrawReveal({
                                 </div>
 
                                 {
-                                    activeReveal === index && (
-                                        <div
-                                            className={`
-                                                absolute
-
-                                                bottom-3
-                                                right-3
-
-                                                w-14
-                                                h-14
-
-                                                rounded-full
-
-                                                flex
-                                                items-center
-                                                justify-center
-
-                                                font-bold
-                                                text-xl
-
-                                                text-white
-
-                                                ${
-                                                    draw.mode === "S"
-                                                        ? "bg-orange-500"
-                                                        : "bg-green-600"
-                                                }
-                                            `}
-                                        >
-
-                                            {draw.level}
-
-                                        </div>
+                                    (previewed[index] || activeReveal === index) && (
+                                        <StepBadge mode={draw.mode} level={draw.level} className="absolute bottom-5 right-5 z-30 h-14 w-14" />
                                     )
                                 }
 

@@ -17,6 +17,7 @@ import {
 } from "../hooks/useDraw";
 
 import AddChartModal from "../components/AddChartModal";
+import { StepBadge } from "../components/CompetitionComponents";
 
 import { api } from "../services/api";
 
@@ -83,6 +84,16 @@ export default function PhasePage() {
         setIsActivePhase
     ] = useState(false);
 
+    const [
+        allowRepeats,
+        setAllowRepeats
+    ] = useState(false);
+
+    const [
+        requiresActivation,
+        setRequiresActivation
+    ] = useState(true);
+
     const championshipId =
         phase?.championshipId;
 
@@ -106,6 +117,16 @@ export default function PhasePage() {
                                 .currentPhaseId ===
                                 id
                         );
+
+                        setAllowRepeats(
+                            res.data
+                                .allowRepeats
+                        );
+
+                        setRequiresActivation(
+                            res.data
+                                .requiresActivation
+                        );
                     }
                 );
         },
@@ -124,14 +145,20 @@ export default function PhasePage() {
             return;
         }
 
-        if (!isActivePhase) {
+        if (
+            requiresActivation &&
+            !isActivePhase
+        ) {
 
             setBlockReason("not-active");
             setShowDrawModal(true);
             return;
         }
 
-        if (phase!.draws.length > 0) {
+        if (
+            !allowRepeats &&
+            phase!.draws.length > 0
+        ) {
 
             setBlockReason(
                 "already-drawn"
@@ -235,6 +262,17 @@ export default function PhasePage() {
             setBlockReason(
                 null
             );
+
+            const channel =
+                new BroadcastChannel(
+                    "piu-randomizer-draw"
+                );
+
+            channel.postMessage({
+                type: "phase-update"
+            });
+
+            channel.close();
         } catch {
 
             alert(
@@ -328,17 +366,28 @@ export default function PhasePage() {
             className="
                 min-h-screen
 
-                bg-black
+                bg-transparent
                 text-white
 
-                p-10
+                    px-6
+                    py-8
+                    lg:px-10
+                    lg:py-12
             "
         >
 
+            <button
+                type="button"
+                onClick={() => window.history.back()}
+                className="mb-8 rounded-lg border border-zinc-800 px-3 py-2 text-xs font-black text-zinc-400 transition hover:border-zinc-600 hover:text-white"
+            >
+                ← Voltar
+            </button>
+
             <h1
                 className="
-                    text-5xl
-                    font-bold
+                    text-4xl
+                    font-black
                     mb-2
                 "
             >
@@ -378,7 +427,8 @@ export default function PhasePage() {
                     disabled={drawing}
 
                     className="
-                        bg-blue-600
+                        bg-cyan-300
+                        text-zinc-950
 
                         px-6
                         py-3
@@ -397,42 +447,47 @@ export default function PhasePage() {
 
                 </button>
 
-                <button
-                    onClick={
-                        activatePhase
-                    }
+                {
+                    requiresActivation && (
+                        <button
+                            onClick={
+                                activatePhase
+                            }
 
-                    disabled={
-                        activating
-                    }
+                            disabled={
+                                activating
+                            }
 
-                    className="
-                        bg-green-600
+                            className="
+                                bg-emerald-300
+                                text-zinc-950
 
-                        px-6
-                        py-3
+                                px-6
+                                py-3
 
-                        rounded-xl
+                                rounded-xl
 
-                        font-bold
-                    "
-                >
+                                font-bold
+                            "
+                        >
 
-                    {
-                        activating
-                            ? "Ativando..."
-                            : isActivePhase
-                                ? "Desativar Fase"
-                                : "Ativar Fase"
-                    }
+                            {
+                                activating
+                                    ? "Ativando..."
+                                    : isActivePhase
+                                        ? "Desativar Fase"
+                                        : "Ativar Fase"
+                            }
 
-                </button>
+                        </button>
+                    )
+                }
                 </div>
 
             <h2
                 className="
-                    text-2xl
-                    font-bold
+                    text-xl
+                    font-black
                     mb-4
                 "
             >
@@ -446,7 +501,10 @@ export default function PhasePage() {
                     }}
 
                     className="
-                        bg-green-600
+                    bg-zinc-800
+                    border
+                    border-zinc-700
+                    hover:border-cyan-300/40
 
                         px-5
                         py-3
@@ -456,7 +514,7 @@ export default function PhasePage() {
                         mb-6
                     "
                 >
-                    + Add Chart
+                    + Adicionar chart
                 </button>
 
             <div
@@ -496,9 +554,11 @@ export default function PhasePage() {
                                 key={item.id}
 
                                 className="
-                                    bg-zinc-900
+                                    bg-[#0d1118]
+                                    border
+                                    border-zinc-800
 
-                                    rounded-xl
+                                    rounded-2xl
 
                                     p-4
 
@@ -523,7 +583,7 @@ export default function PhasePage() {
                                          <img
 
                                          src={
-                                             `http://localhost:3000/banners/${item.chart.song.bannerPath}`
+                                             `http://localhost:3000/banners/${encodeURIComponent(item.chart.song.bannerPath)}`
                                          }
                                      
                                          alt={
@@ -540,43 +600,14 @@ export default function PhasePage() {
 
                                      />
 
-                                    <div
-                                        className={`
-                                            absolute
-                                            
-                                            right-2
-                                            
-                                            w-12
-                                            h-12
-                                            
-                                            rounded-full
-                                            
-                                            flex
-                                            items-center
-                                            justify-center
-                                            
-                                            font-bold
-                                            
-                                            text-white
-                                            
-                                            ${
-                                                item.chart.mode === "S"
-                                                    ? "bg-orange-500"
-                                                    : "bg-green-600"
-                                            }
-                                        `}
-                                    >
-
-                                        {item.chart.level}
-
-                                    </div>
+                                    <StepBadge mode={item.chart.mode} level={item.chart.level} className="absolute right-2 top-2 h-12 w-12" />
 
                                 </div>
 
                                     <h3
                                         className="
-                                            text-lg
-                                            font-bold
+                                                text-sm
+                                                font-black
                                         "
                                     >
                                         {
@@ -595,7 +626,9 @@ export default function PhasePage() {
 
                                             className="
                                                 mt-auto
-                                                bg-red-600
+                                                border
+                                                border-red-400/20
+                                                bg-red-400/10
 
                                                 hover:bg-red-500
 
@@ -607,7 +640,7 @@ export default function PhasePage() {
                                                 text-sm
                                             "
                                         >
-                                            Remove
+                                            Remover
                                         </button>
                                     </div>
                                 </div>
@@ -621,14 +654,14 @@ export default function PhasePage() {
 
             <h2 
                 className="
-                    text-2xl
-                    font-bold
+                    text-xl
+                    font-black
 
                     mt-10
                     mb-4
                 "
             >
-                Draw History
+                    Histórico de sorteios
             </h2>
 
             <div
@@ -651,7 +684,10 @@ export default function PhasePage() {
                     }
 
                     className="
-                        bg-red-700
+                        border
+                        border-red-400/20
+                        bg-red-400/10
+                        text-red-200
 
                         hover:bg-red-600
 
@@ -664,7 +700,7 @@ export default function PhasePage() {
                     "
                 >
 
-                    Clear History
+                    Limpar histórico
 
                 </button>
 
@@ -689,7 +725,12 @@ export default function PhasePage() {
                                 key={draw.id}
 
                                 className="
-                                    bg-zinc-800
+                                    border
+                                    border-zinc-800
+                                    bg-[#0d1118]
+                                    text-sm
+                                    font-semibold
+                                    text-zinc-300
 
                                     p-4
 
@@ -704,11 +745,9 @@ export default function PhasePage() {
                                 {" - "}
 
                                 {
-                                    draw.chart.mode
-                                }
-
-                                {
-                                    draw.chart.level
+                                    draw.chart.mode === "X2"
+                                        ? "X2"
+                                        : `${draw.chart.mode} ${draw.chart.level}`
                                 }
 
                             </div>
@@ -859,4 +898,3 @@ export default function PhasePage() {
         </div>
     );
 }
-

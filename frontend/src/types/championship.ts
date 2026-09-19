@@ -9,7 +9,7 @@ export interface Phase {
 
     minLevel: number;
 
-    maxLevel?: number;
+    maxLevel?: number | null;
 
     drawCount: number;
 
@@ -20,6 +20,10 @@ export interface Championship {
     id: string;
 
     name: string;
+
+    allowRepeats: boolean;
+
+    requiresActivation: boolean;
 
     currentPhaseId: string | null;
 

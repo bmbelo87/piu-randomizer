@@ -23,6 +23,8 @@ interface PhaseSeed {
 
 interface ChampionshipSeed {
     name: string;
+    allowRepeats?: boolean;
+    requiresActivation?: boolean;
     phases: PhaseSeed[];
 }
 
@@ -66,9 +68,11 @@ const intermediateCharts = {
         { title: "Cynical", level: 16 },
         { title: "SUPER☆HARAGURO☆POP", level: 16 },
         { title: "Rise Up (feat. Miori Celesta)", level: 16 },
+        { title: "CALL ME BACK", level: 16 },
         { title: "Dreamchasers", level: 17 },
         { title: "Unfelicitas", level: 17 },
-        { title: "Punishment Restaurant", level: 17 }
+        { title: "Punishment Restaurant", level: 17 },
+        { title: "DIE ANOTHER DAY", level: 17 }
     ]
 };
 
@@ -99,7 +103,8 @@ const legendsCharts = {
         { title: "Ultimatum", mode: "D", level: 25 },
         { title: "Etude OP 10-4", mode: "D", level: 25 },
         { title: "Galaxy Collapse", mode: "D", level: 25 },
-        { title: "Imperium", mode: "D", level: 25 }
+        { title: "Imperium", mode: "D", level: 25 },
+        { title: "Ghost Bloody Train", mode: "D", level: 25 }
     ],
     "D26": [
         { title: "OVERNIGHT FLOWER", mode: "D", level: 26 },
@@ -113,7 +118,8 @@ const legendsCharts = {
         { title: "1950", mode: "D", level: 27 },
         { title: "Ultimatum", mode: "D", level: 27 },
         { title: "Kugutsu", mode: "D", level: 27 },
-        { title: "Freedom Dive", mode: "D", level: 27 }
+        { title: "Freedom Dive", mode: "D", level: 27 },
+        { title: "L (PIU Edit)", mode: "D", level: 27 }
     ]
 };
 
@@ -243,6 +249,7 @@ const masterCharts = {
         { title: "Legendary Dominion", level: 25, mode: "D" },
         { title: "Enjoy The Show", level: 25, mode: "D" },
         { title: "INFiNiTE ENERZY -Overdoze-", level: 25, mode: "D" },
+        { title: "The Stranger", level: 25, mode: "D" },
         { title: "QUATTUORUX", level: 26, mode: "D" },
         { title: "OVERNIGHT FLOWER", level: 26, mode: "D" },
         { title: "Super Akuma Emperor", level: 26, mode: "D" }
@@ -282,9 +289,11 @@ const expertDoubleCharts = {
         { title: "BANG BANG", level: 23 },
         { title: "The Last Rebellion", level: 23 },
         { title: "Enjoy The Show", level: 23 },
+        { title: "Ghost Bloody Train", level: 23 },
         { title: "We Love Your Step", level: 24 },
         { title: "King's Tomb", level: 24 },
-        { title: "Freedom Dive", level: 24 }
+        { title: "Freedom Dive", level: 24 },
+        { title: "L (PIU Edit)", level: 24 }
     ]
 };
 
@@ -328,9 +337,11 @@ const expertSingleCharts = {
         { title: "Enjoy The Show", level: 23 },
         { title: "The Last Rebellion", level: 23 },
         { title: "INFiNiTE ENERZY -Overdoze-", level: 23 },
+        { title: "Ghost Bloody Train", level: 23 },
         { title: "QUATTUORUX", level: 24 },
         { title: "OVERNIGHT FLOWER", level: 24 },
-        { title: "Super Akuma Emperor", level: 24 }
+        { title: "Super Akuma Emperor", level: 24 },
+        { title: "L (PIU Edit)", level: 24 }
     ]
 };
 
@@ -374,9 +385,11 @@ const advancedCharts = {
         { title: "Legendary Dominion", level: 20 },
         { title: "Lucky Star", level: 20 },
         { title: "That Kitty (PIU Edit.)", level: 20 },
+        { title: "The Stranger", level: 20 },
         { title: "Ercitite", level: 21 },
         { title: "BANG BANG", level: 21 },
-        { title: "Stardream (feat. Romelon)", level: 21 }
+        { title: "Stardream (feat. Romelon)", level: 21 },
+        { title: "Ghost Bloody Train", level: 21 }
     ]
 };
 
@@ -441,6 +454,8 @@ const championships: ChampionshipSeed[] = [
     },
     {
         name: "Legends",
+        allowRepeats: true,
+        requiresActivation: false,
         phases: [
             { name: "S22", modes: ["S"], minLevel: 22, maxLevel: 22, drawCount: 1, charts: legendsCharts.S22 },
             { name: "S23", modes: ["S"], minLevel: 23, maxLevel: 23, drawCount: 1, charts: legendsCharts.S23 },
@@ -645,7 +660,7 @@ async function linkPreviews(
         "Extreme Music School 2nd period":
             "Extreme Music School 2nd period feat. Nanahira.mp3",
         "Gargoyle - FULL SONG -":
-            "Gargoyle.mp3",
+            "Gargoyle - FULL SONG -.mp3",
         "Love is a Danger Zone 2 Try To B.P.M":
             "Love is a Danger Zone 2.mp3"
     };
@@ -674,7 +689,11 @@ async function linkPreviews(
         const songId =
             songIdByTitle.get(normalize(title));
 
-        if (!songId || !previewFile) {
+        if (
+            !songId ||
+            !previewFile ||
+            !fs.existsSync(path.join(previewDir, previewFile))
+        ) {
             missingFiles.push(title);
             continue;
         }
@@ -740,15 +759,15 @@ async function linkBanners(
 
     const manual: Record<string, string> = {
         "Rise Up (feat. Miori Celesta)":
-            "Rise Up (feat. Miori Celestra).png",
+            "Rise Up (feat. Miori Celesta).png",
         "Stardream (feat. Romelon)":
             "Stardream (feat. Romelon).png",
         "Extreme Music School 2nd period":
-            "Extreme Music School 2nd period feat. Nanahira.png",
+            "Extreme Music School 2nd period.png",
         "Gargoyle - FULL SONG -":
             "Gargoyle.png",
         "Love is a Danger Zone 2 Try To B.P.M":
-            "Love is a Danger Zone 2.png"
+            "Love is a Danger Zone 2 Try To B.P.M.png"
     };
 
     const titles = [
@@ -777,7 +796,11 @@ async function linkBanners(
                 normalize(title)
             );
 
-        if (!songId || !bannerFile) {
+        if (
+            !songId ||
+            !bannerFile ||
+            !fs.existsSync(path.join(bannerDir, bannerFile))
+        ) {
             missingFiles.push(title);
             continue;
         }
@@ -838,7 +861,9 @@ async function main() {
         const created = await prisma.championship.create({
             data: {
                 name: championship.name,
-                order: index
+                order: index,
+                allowRepeats: championship.allowRepeats ?? false,
+                requiresActivation: championship.requiresActivation ?? true
             }
         });
 
