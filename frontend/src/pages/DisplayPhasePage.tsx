@@ -103,11 +103,11 @@ export default function DisplayPhasePage() {
                                 </p>
                             </div>
 
-                            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                            <div className="flex flex-wrap justify-center gap-5">
                                 {[...phase.draws]
                                     .sort((a, b) => a.chart.level - b.chart.level || a.chart.song.title.localeCompare(b.chart.song.title))
                                     .map(draw => (
-                                        <article key={draw.id} className="overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d1118] shadow-2xl">
+                                        <article key={draw.id} className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d1118] shadow-2xl">
                                             <img src={`http://localhost:3000/banners/${encodeURIComponent(draw.chart.song.bannerPath)}`} alt={draw.chart.song.title} className="aspect-video w-full object-cover" />
                                             <div className="flex items-center justify-between gap-4 p-5">
                                                 <h3 className="text-lg font-black leading-tight">{draw.chart.song.title}</h3>
