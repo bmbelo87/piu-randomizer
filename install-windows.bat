@@ -84,12 +84,20 @@ call npm --prefix frontend install
 if errorlevel 1 goto :error
 
 echo [3/5] Gerando Prisma Client...
-call npx --prefix backend prisma generate
-if errorlevel 1 goto :error
+pushd backend
+call npx prisma generate
+if errorlevel 1 (
+    popd
+    goto :error
+)
 
 echo [4/5] Sincronizando banco de dados...
-call npx --prefix backend prisma db push
-if errorlevel 1 goto :error
+call npx prisma db push
+if errorlevel 1 (
+    popd
+    goto :error
+)
+popd
 
 echo [5/5] Iniciando backend e frontend...
 start "PIU Randomizer Backend" cmd /k "cd /d "%~dp0backend" && npm run dev"
