@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn src/server.ts",
+    "build": "prisma generate && tsc",
+    "start": "prisma db push --skip-generate && node dist/server.js",
     "import-songs": "ts-node scripts/importSongs.ts",
     "copy-from-postgres": "ts-node scripts/copyFromPostgres.ts",
     "db:push": "prisma db push",

@@ -15,10 +15,10 @@ import DisplayPhasePage from "./pages/DisplayPhasePage";
 import MusicPoolPage from "./pages/MusicPoolPage";
 import AmbientArrows from "./components/AmbientArrows";
 
-import { STATIC_MODE } from "./services/config";
+import { PAGES_BUILD } from "./services/config";
 
 // No GitHub Pages nao ha fallback de SPA, entao as rotas usam o hash (#/rota).
-const Router = STATIC_MODE ? HashRouter : BrowserRouter;
+const Router = PAGES_BUILD ? HashRouter : BrowserRouter;
 export default function App(){
 
   return (

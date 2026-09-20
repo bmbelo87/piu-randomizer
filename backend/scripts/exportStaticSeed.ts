@@ -1,7 +1,7 @@
 /**
- * Exporta o SQLite atual para frontend/src/static/seed.json, usado como dado
- * inicial do modo estatico (GitHub Pages). Sorteios e fase ativa nao sao
- * exportados: o modo estatico sempre comeca "limpo".
+ * Exporta o SQLite atual para frontend/src/static/seed.json (dado inicial do
+ * modo estatico/GitHub Pages) e backend/data/seed.json (banco inicial na
+ * hospedagem). Sorteios e fase ativa nao sao exportados: sempre comeca "limpo".
  *
  * Uso (dentro de backend/):
  *   npm run export-static-seed
@@ -24,11 +24,18 @@ async function main() {
         draws: []
     };
 
-    const target = path.resolve(__dirname, "../../frontend/src/static/seed.json");
-    fs.writeFileSync(target, JSON.stringify(seed));
+    // frontend: dado inicial do modo Pages; backend: banco inicial em hospedagem de disco efemero
+    const targets = [
+        path.resolve(__dirname, "../../frontend/src/static/seed.json"),
+        path.resolve(__dirname, "../data/seed.json")
+    ];
+
+    for (const target of targets) {
+        fs.writeFileSync(target, JSON.stringify(seed));
+    }
 
     console.log(
-        `Seed gravado em ${target}:`,
+        `Seed gravado em:\n  ${targets.join("\n  ")}\n`,
         Object.fromEntries(Object.entries(seed).map(([k, v]) => [k, v.length]))
     );
 }

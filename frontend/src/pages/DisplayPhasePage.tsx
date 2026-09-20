@@ -49,6 +49,13 @@ export default function DisplayPhasePage() {
         });
     }, [refetch]);
 
+    // Recarrega de tempos em tempos: recupera o estado se um aviso se perder ou o
+    // backend reiniciar, e mantem hospedagens que dormem (Render gratis) acordadas.
+    useEffect(() => {
+        const timer = setInterval(refetch, 30000);
+        return () => clearInterval(timer);
+    }, [refetch]);
+
     if (loading || !data) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-[#07090d] text-sm font-black tracking-[0.2em] text-zinc-400">
