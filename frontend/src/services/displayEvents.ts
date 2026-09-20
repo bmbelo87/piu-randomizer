@@ -16,6 +16,7 @@ export type DisplayEvent =
         }[];
         seed: string;
         rerollLevel?: number;
+        rerollMode?: string;
     };
 
 export async function sendDisplayEvent(event: DisplayEvent) {

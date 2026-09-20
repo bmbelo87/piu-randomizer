@@ -34,6 +34,9 @@ model Phase {
 
   mode        String
 
+  // Texto livre exibido no lugar de "modo + niveis" (ex.: "S23 e D23")
+  description String?
+
   minLevel    Int
   maxLevel    Int?
 

@@ -87,10 +87,11 @@ export default function PhasePage() {
         setIsActivePhase
     ] = useState(false);
 
+    // "modo:nivel" do slot em reroll (S23 e D23 sao slots diferentes)
     const [
-        rerollingLevel,
-        setRerollingLevel
-    ] = useState<number | null>(null);
+        rerollingSlot,
+        setRerollingSlot
+    ] = useState<string | null>(null);
 
     const [
         allowRepeats,
@@ -219,22 +220,25 @@ export default function PhasePage() {
         }
     }
 
-    async function handleReroll(level: number) {
-        if (rerollingLevel !== null) return;
+    async function handleReroll(level: number, mode: string) {
+        if (rerollingSlot !== null) return;
 
-        setRerollingLevel(level);
+        setRerollingSlot(`${mode}:${level}`);
 
         try {
             const result = await rerollChart(
                 phase!.id,
-                level
+                level,
+                mode
             );
             const rerollResult = {
                 ...result,
                 rerollLevel: level,
+                rerollMode: mode,
                 draws: result.draws.filter(
-                    (draw: { level: number }) =>
-                        draw.level === level
+                    (draw: { level: number; mode: string }) =>
+                        draw.level === level &&
+                        draw.mode === mode
                 )
             };
 
@@ -245,12 +249,13 @@ export default function PhasePage() {
             void sendDisplayEvent({
                 draws: rerollResult.draws,
                 seed: rerollResult.seed,
-                rerollLevel: level
+                rerollLevel: level,
+                rerollMode: mode
             });
         } catch {
             alert("Não foi possível realizar o reroll");
         } finally {
-            setRerollingLevel(null);
+            setRerollingSlot(null);
         }
     }
 
@@ -428,16 +433,20 @@ export default function PhasePage() {
                 "
             >
 
-                {phase.mode}
-                {" "}
+                {phase.description ?? (
+                    <>
+                        {phase.mode}
+                        {" "}
 
-                {phase.minLevel}
+                        {phase.minLevel}
 
-                {
-                    phase.allowOver
-                        ? "+"
-                        : `~${phase.maxLevel}`
-                }
+                        {
+                            phase.allowOver
+                                ? "+"
+                                : `~${phase.maxLevel}`
+                        }
+                    </>
+                )}
 
             </p>
 
@@ -776,14 +785,14 @@ export default function PhasePage() {
                                     {rerollAllowed && (
                                         <button
                                             type="button"
-                                            onClick={() => void handleReroll(draw.chart.level)}
+                                            onClick={() => void handleReroll(draw.chart.level, draw.chart.mode)}
                                             disabled={
-                                                rerollingLevel !== null ||
+                                                rerollingSlot !== null ||
                                                 (requiresActivation && !isActivePhase)
                                             }
                                             className="shrink-0 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-3 py-2 text-[10px] font-black tracking-[0.12em] text-cyan-200 transition hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-40"
                                         >
-                                            {rerollingLevel === draw.chart.level
+                                            {rerollingSlot === `${draw.chart.mode}:${draw.chart.level}`
                                                 ? "REROLLING..."
                                                 : "REROLL"}
                                         </button>

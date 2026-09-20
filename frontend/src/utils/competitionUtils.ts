@@ -50,6 +50,8 @@ export function phaseName(phase: Phase) {
 }
 
 export function phaseDifficulty(phase: Phase) {
+    if (phase.description) return phase.description;
+
     if (phase.mode === "X2") return phaseName(phase);
 
     const mode = phase.mode.replace(",", " + ");

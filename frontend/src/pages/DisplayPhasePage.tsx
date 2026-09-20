@@ -16,7 +16,11 @@ interface DrawResult {
     }[];
     seed: string;
     rerollLevel?: number;
+    rerollMode?: string;
 }
+
+// S antes de D no mesmo nivel (ex.: S23 + D23)
+const modeRank = (mode: string) => (mode === "S" ? 0 : mode === "D" ? 1 : 2);
 
 export default function DisplayPhasePage() {
     const { data, loading, refetch } = useDisplay();
@@ -43,7 +47,8 @@ export default function DisplayPhasePage() {
             setDrawResult({
                 draws: message.draws,
                 seed: message.seed,
-                rerollLevel: message.rerollLevel
+                rerollLevel: message.rerollLevel,
+                rerollMode: message.rerollMode
             });
             setShowDrawModal(true);
         });
@@ -117,13 +122,13 @@ export default function DisplayPhasePage() {
                                 <p className="text-[11px] font-black tracking-[0.3em] text-cyan-300/80">FASE EM ANDAMENTO</p>
                                 <h2 className="mt-4 text-4xl font-black tracking-[-0.03em] sm:text-6xl">{phase.name}</h2>
                                 <p className="mt-3 text-lg font-semibold text-zinc-400">
-                                    {phase.mode === "X2" ? "CO-OP X2" : `${phase.mode} · ${phase.minLevel}${phase.maxLevel == null ? "+" : `–${phase.maxLevel}`}`}
+                                    {phase.description ?? (phase.mode === "X2" ? "CO-OP X2" : `${phase.mode} · ${phase.minLevel}${phase.maxLevel == null ? "+" : `–${phase.maxLevel}`}`)}
                                 </p>
                             </div>
 
                             <div className="flex flex-wrap justify-center gap-5">
                                 {[...phase.draws]
-                                    .sort((a, b) => a.chart.level - b.chart.level || a.chart.song.title.localeCompare(b.chart.song.title))
+                                    .sort((a, b) => a.chart.level - b.chart.level || modeRank(a.chart.mode) - modeRank(b.chart.mode) || a.chart.song.title.localeCompare(b.chart.song.title))
                                     .map(draw => (
                                         <article key={draw.id} className={`w-full max-w-[480px] overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d1118] shadow-2xl ${isBeingDrawn(draw) ? "invisible" : ""}`}>
                                             <img src={`${ASSETS_URL}/banners/${encodeURIComponent(draw.chart.song.bannerPath)}`} alt={draw.chart.song.title} className="aspect-video w-full object-cover" />
@@ -148,6 +153,7 @@ export default function DisplayPhasePage() {
                             availableCharts={phase.availableCharts}
                             audioContext={audioReady ? audioContext : null}
                             rerollLevel={drawResult.rerollLevel}
+                            rerollMode={drawResult.rerollMode}
                             onComplete={() => setShowDrawModal(false)}
                         />
                     </div>

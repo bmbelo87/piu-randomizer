@@ -4,6 +4,7 @@ export interface Phase {
     order: number;
     championshipId: string;
     mode: string;
+    description?: string | null;
     minLevel: number;
     maxLevel: number | null;
     allowOver: boolean;

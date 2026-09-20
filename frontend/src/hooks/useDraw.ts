@@ -18,11 +18,12 @@ export async function drawCharts(
 
 export async function rerollChart(
     phaseId: string,
-    level: number
+    level: number,
+    mode?: string
 ) {
     const response = await api.post(
         `/draws/phase/${phaseId}/reroll`,
-        { level }
+        { level, mode }
     );
 
     return response.data;

@@ -88,7 +88,9 @@ function generatePhases(phases: any[]) {
             drawCount: 
                 phase.drawCount ?? 2,
 
-            allowOver: phase.allowOver ?? false
+            allowOver: phase.allowOver ?? false,
+
+            description: phase.description ?? null
         })
     );
 }

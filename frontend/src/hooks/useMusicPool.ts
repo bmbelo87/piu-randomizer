@@ -19,6 +19,7 @@ export interface PoolPhase {
     id: string;
     name: string;
     mode: string;
+    description?: string | null;
     minLevel: number;
     maxLevel: number | null;
     allowOver: boolean;

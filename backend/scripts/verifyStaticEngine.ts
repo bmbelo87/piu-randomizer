@@ -141,6 +141,39 @@ async function scenario(call: Call) {
     await step("deactivate", "PATCH", `/championships/${champion.id}/current-phase`, { phaseId: null });
     await step("display (deactivated)", "GET", "/display");
 
+    // Master: fases com S e D no mesmo nivel (S23 + D23) precisam sortear um de cada
+    const master = list.find(c => c.name === "Master")!;
+    const masterPhases = [...master.phases].sort((a: Json, b: Json) => a.order - b.order);
+    const expectedSlots = ["S21+S22", "D23+S23", "D24+S24", "D25+D26"];
+
+    for (const [index, masterPhase] of masterPhases.entries()) {
+        await step(`master activate phase ${masterPhase.order}`, "PATCH", `/championships/${master.id}/current-phase`, { phaseId: masterPhase.id });
+        const result = await step(`master draw phase ${masterPhase.order}`, "POST", `/draws/phase/${masterPhase.id}`, { amount: masterPhase.drawCount }, "shape");
+        const slots = (result.data.draws ?? []).map((d: Json) => `${d.mode}${d.level}`).sort().join("+");
+        checks.push(`master phase ${masterPhase.order} slots=${slots} (esperado ${expectedSlots[index]})`);
+    }
+
+    const masterP2 = masterPhases[1];
+    await step("master activate phase 2", "PATCH", `/championships/${master.id}/current-phase`, { phaseId: masterP2.id });
+    await step("master clear phase 2", "DELETE", `/phases/${masterP2.id}/history`);
+    const m2 = await step("master draw phase 2 again", "POST", `/draws/phase/${masterP2.id}`, { amount: 2 }, "shape");
+    const sBefore = m2.data.draws.find((d: Json) => d.mode === "S").song;
+    const dBefore = m2.data.draws.find((d: Json) => d.mode === "D").song;
+
+    const rerollD = await step("master reroll D23", "POST", `/draws/phase/${masterP2.id}/reroll`, { level: 23, mode: "D" }, "shape");
+    checks.push(`master reroll D keeps S=${rerollD.data.draws.find((d: Json) => d.mode === "S").song === sBefore} mode=${rerollD.data.rerollMode} draws=${rerollD.data.draws.map((d: Json) => d.mode + d.level).sort().join("+")}`);
+
+    const rerollS = await step("master reroll S23", "POST", `/draws/phase/${masterP2.id}/reroll`, { level: 23, mode: "S" }, "shape");
+    const dAfter = rerollS.data.draws.find((d: Json) => d.mode === "D").song;
+    checks.push(`master reroll S keeps D=${dAfter === rerollD.data.draws.find((d: Json) => d.mode === "D").song} mode=${rerollS.data.rerollMode}`);
+
+    // sem mode (front antigo): usa o modo da musica sorteada e nunca troca S por D
+    const rerollNoMode = await step("master reroll 23 without mode", "POST", `/draws/phase/${masterP2.id}/reroll`, { level: 23 }, "shape");
+    checks.push(`master reroll without mode keeps both slots=${rerollNoMode.data.draws.map((d: Json) => d.mode + d.level).sort().join("+")}`);
+    void dBefore;
+
+    await step("master deactivate", "PATCH", `/championships/${master.id}/current-phase`, { phaseId: null });
+
     const created = await step("create championship", "POST", "/championships", {
         name: "Teste",
         allowRepeats: true,

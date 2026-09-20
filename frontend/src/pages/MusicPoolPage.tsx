@@ -76,7 +76,7 @@ export default function MusicPoolPage() {
                             <div className="space-y-6 p-6">
                                 {championship.phases.map(phase => (
                                     <div key={phase.id}>
-                                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-black text-white">{phase.name}</h3><p className="mt-1 text-xs font-semibold text-zinc-500">{phase.mode} {phase.minLevel}{phase.allowOver ? "+" : `–${phase.maxLevel}`} · {phase.drawCount} sorteios</p></div><span className="text-xs font-bold text-zinc-600">{phase.charts.length} músicas</span></div>
+                                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h3 className="font-black text-white">{phase.name}</h3><p className="mt-1 text-xs font-semibold text-zinc-500">{phase.description ?? `${phase.mode} ${phase.minLevel}${phase.allowOver ? "+" : `–${phase.maxLevel}`}`} · {phase.drawCount} sorteios</p></div><span className="text-xs font-bold text-zinc-600">{phase.charts.length} músicas</span></div>
                                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
                                             {[...phase.charts].sort((a, b) => a.level - b.level || a.title.localeCompare(b.title)).map(chart => (
                                                 <article key={chart.id} className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 transition hover:-translate-y-0.5 hover:border-zinc-600">

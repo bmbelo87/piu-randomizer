@@ -22,6 +22,7 @@ export interface Phase {
     name: string;
     order: number;
     mode: string;
+    description: string | null;
     minLevel: number;
     maxLevel: number | null;
     allowOver: boolean;
@@ -209,6 +210,7 @@ function createChampionship(db: Db, body: Body) {
         name: phase.name,
         order: index + 1,
         mode: phase.mode,
+        description: phase.description ?? null,
         minLevel: phase.minLevel,
         maxLevel: phase.maxLevel ?? null,
         allowOver: phase.allowOver ?? false,
@@ -393,12 +395,14 @@ function drawCharts(db: Db, phaseId: string, body: Body) {
             record(selected, i);
         }
     } else {
-        const chartsByLevel = new Map<number, typeof availableCharts>();
+        // Grupos por modo + nivel: S23 e D23 sao grupos diferentes (ex.: fases do Master)
+        const chartsByLevel = new Map<string, typeof availableCharts>();
 
         for (const phaseChart of availableCharts) {
-            const list = chartsByLevel.get(phaseChart.chart.level) ?? [];
+            const key = `${phaseChart.chart.mode}:${phaseChart.chart.level}`;
+            const list = chartsByLevel.get(key) ?? [];
             list.push(phaseChart);
-            chartsByLevel.set(phaseChart.chart.level, list);
+            chartsByLevel.set(key, list);
         }
 
         const levels = Array.from(chartsByLevel.keys());
@@ -434,6 +438,8 @@ function drawCharts(db: Db, phaseId: string, body: Body) {
 
 function rerollChart(db: Db, phaseId: string, body: Body) {
     const level = Number(body.level);
+    const mode: string | undefined =
+        typeof body.mode === "string" && body.mode ? body.mode : undefined;
 
     const phase = findPhase(db, phaseId);
 
@@ -464,10 +470,13 @@ function rerollChart(db: Db, phaseId: string, body: Body) {
         fail(400, "A valid level is required");
     }
 
-    const targetDraw = draws.find(draw => draw.chart.level === level);
+    // Sem `mode`, vale o modo da musica sorteada nesse nivel (S23 x D23 sao slots diferentes)
+    const targetDraw = draws.find(
+        draw => draw.chart.level === level && (mode === undefined || draw.chart.mode === mode)
+    );
     const levelCharts = phaseChartsOf(db, phaseId)
         .map(pc => withChart(db, pc))
-        .filter(pc => pc.chart.level === level);
+        .filter(pc => pc.chart.level === level && pc.chart.mode === targetDraw?.chart.mode);
 
     if (!targetDraw || levelCharts.length === 0) {
         fail(400, "The selected level is not available for reroll");
@@ -488,6 +497,7 @@ function rerollChart(db: Db, phaseId: string, body: Body) {
     return {
         seed,
         rerollLevel: level,
+        rerollMode: targetDraw.chart.mode,
         draws: updated.map(drawSummary)
     };
 }
@@ -591,6 +601,7 @@ function getConsolidatedPool(db: Db) {
             id: phase.id,
             name: phase.name,
             mode: phase.mode,
+            description: phase.description,
             minLevel: phase.minLevel,
             maxLevel: phase.maxLevel,
             allowOver: phase.allowOver,

@@ -46,16 +46,28 @@ interface DrawRevealProps {
 
     audioContext?: AudioContext | null;
     rerollLevel?: number;
+    rerollMode?: string;
     onComplete?: () => void;
 }
+
+// S antes de D no mesmo nivel (ex.: S23 + D23)
+const MODE_ORDER: Record<string, number> = { S: 0, D: 1 };
+const modeRank = (mode: string) => MODE_ORDER[mode] ?? 2;
 
 export default function DrawReveal({
     draws,
     availableCharts,
     audioContext,
     rerollLevel,
+    rerollMode,
     onComplete
 }: DrawRevealProps) {
+
+    // Reroll: so o slot (nivel + modo) sorteado de novo gira
+    const isRerollTarget = (draw: { level: number; mode: string }) =>
+        rerollLevel === undefined ||
+        (draw.level === rerollLevel &&
+            (rerollMode === undefined || draw.mode === rerollMode));
 
     const sortedDraws =
         useMemo(
@@ -63,6 +75,7 @@ export default function DrawReveal({
                 [...draws].sort(
                     (a, b) =>
                         a.level - b.level ||
+                        modeRank(a.mode) - modeRank(b.mode) ||
                         a.song.localeCompare(
                             b.song
                         )
@@ -70,11 +83,7 @@ export default function DrawReveal({
             [draws]
         );
 
-    const visibleDraws = rerollLevel === undefined
-        ? sortedDraws
-        : sortedDraws.filter(
-            draw => draw.level === rerollLevel
-        );
+    const visibleDraws = sortedDraws.filter(isRerollTarget);
 
     const [
         countdown,
@@ -124,11 +133,7 @@ export default function DrawReveal({
         let cancelled = false;
         const timers: number[] = [];
 
-        const sorted = rerollLevel === undefined
-            ? sortedDraws
-            : sortedDraws.filter(
-                draw => draw.level === rerollLevel
-            );
+        const sorted = sortedDraws.filter(isRerollTarget);
 
         const buildSpinReel = () => {
             const base = Array.from(
@@ -150,8 +155,7 @@ export default function DrawReveal({
         };
 
         const built = sorted.map(draw =>
-            rerollLevel !== undefined &&
-            draw.level !== rerollLevel
+            !isRerollTarget(draw)
                 ? [draw.bannerPath]
                 : buildSpinReel()
         );
@@ -162,8 +166,7 @@ export default function DrawReveal({
             current: sorted.map(() => 0)
         };
         const stopped = sorted.map(draw =>
-            rerollLevel !== undefined &&
-            draw.level !== rerollLevel
+            !isRerollTarget(draw)
         );
         const stopPromises: Array<Promise<void> | null> =
             sorted.map(() => null);
@@ -281,7 +284,7 @@ export default function DrawReveal({
             ? sorted.map((_, index) => index)
             : sorted
                 .map((draw, index) =>
-                    draw.level === rerollLevel ? index : -1
+                    isRerollTarget(draw) ? index : -1
                 )
                 .filter(index => index >= 0);
 

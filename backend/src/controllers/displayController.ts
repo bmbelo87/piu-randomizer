@@ -194,6 +194,7 @@ export async function getConsolidatedPool(
                         id: phase.id,
                         name: phase.name,
                         mode: phase.mode,
+                        description: phase.description,
                         minLevel: phase.minLevel,
                         maxLevel: phase.maxLevel,
                         allowOver: phase.allowOver,

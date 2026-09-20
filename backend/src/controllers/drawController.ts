@@ -137,15 +137,16 @@ export async function drawCharts(
                 });
             }
         } else {
+            // Grupos por modo + nivel: S23 e D23 sao grupos diferentes (ex.: fases do Master)
             const chartsByLevel =
-                new Map<number, typeof availableCharts>();
+                new Map<string, typeof availableCharts>();
 
             for (
                 const phaseChart
                 of availableCharts
             ) {
                 const level =
-                    phaseChart.chart.level;
+                    `${phaseChart.chart.mode}:${phaseChart.chart.level}`;
 
                 const list =
                     chartsByLevel.get(level) ?? [];
@@ -266,6 +267,10 @@ export async function rerollChart(
     try {
         const phaseId = req.params.id as string;
         const level = Number(req.body.level);
+        const mode: string | undefined =
+            typeof req.body.mode === "string" && req.body.mode
+                ? req.body.mode
+                : undefined;
 
         const phase = await prisma.phase.findUnique({
             where: { id: phaseId },
@@ -321,11 +326,16 @@ export async function rerollChart(
             return res.status(400).json({ error: "A valid level is required" });
         }
 
+        // Sem `mode`, vale o modo da musica sorteada nesse nivel (S23 x D23 sao slots diferentes)
         const targetDraw = phase.draws.find(
-            draw => draw.chart.level === level
+            draw =>
+                draw.chart.level === level &&
+                (mode === undefined || draw.chart.mode === mode)
         );
         const levelCharts = phase.availableCharts.filter(
-            phaseChart => phaseChart.chart.level === level
+            phaseChart =>
+                phaseChart.chart.level === level &&
+                phaseChart.chart.mode === targetDraw?.chart.mode
         );
 
         if (!targetDraw || levelCharts.length === 0) {
@@ -359,6 +369,7 @@ export async function rerollChart(
         return res.json({
             seed,
             rerollLevel: level,
+            rerollMode: targetDraw.chart.mode,
             draws: draws.map(draw => ({
                 song: draw.chart.song.title,
                 bannerPath: draw.chart.song.bannerPath,

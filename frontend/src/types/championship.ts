@@ -7,6 +7,8 @@ export interface Phase {
 
     mode: string;
 
+    description?: string | null;
+
     minLevel: number;
 
     maxLevel?: number | null;
