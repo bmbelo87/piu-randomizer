@@ -65,6 +65,16 @@ export default function DisplayPhasePage() {
     }
 
     const { championship, phase } = data;
+
+    // Enquanto a roleta roda, os cards sorteados ficam ocultos no fundo para nao
+    // revelar o resultado antes da hora (no reroll, so o nivel sorteado de novo).
+    const isBeingDrawn = (draw: { chart: { mode: string; level: number; song: { title: string } } }) =>
+        showDrawModal &&
+        Boolean(drawResult?.draws.some(item =>
+            item.song === draw.chart.song.title &&
+            item.mode === draw.chart.mode &&
+            item.level === draw.chart.level
+        ));
     const allPhases = data.allPhases ?? [];
     const isActive = Boolean(championship.currentPhaseId);
     const lastPhase = [...allPhases].sort((a, b) => b.order - a.order)[0];
@@ -115,7 +125,7 @@ export default function DisplayPhasePage() {
                                 {[...phase.draws]
                                     .sort((a, b) => a.chart.level - b.chart.level || a.chart.song.title.localeCompare(b.chart.song.title))
                                     .map(draw => (
-                                        <article key={draw.id} className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d1118] shadow-2xl">
+                                        <article key={draw.id} className={`w-full max-w-[480px] overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d1118] shadow-2xl ${isBeingDrawn(draw) ? "invisible" : ""}`}>
                                             <img src={`${ASSETS_URL}/banners/${encodeURIComponent(draw.chart.song.bannerPath)}`} alt={draw.chart.song.title} className="aspect-video w-full object-cover" />
                                             <div className="flex items-center justify-between gap-4 p-5">
                                                 <h3 className="text-lg font-black leading-tight">{draw.chart.song.title}</h3>
