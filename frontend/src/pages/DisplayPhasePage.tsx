@@ -69,7 +69,9 @@ export default function DisplayPhasePage() {
                 <header className="flex items-center justify-between border-b border-white/[0.08] pb-5">
                     <div>
                         <p className="text-[10px] font-black tracking-[0.3em] text-cyan-300/70">GAUCHONES 2026 · LIVE BOARD</p>
-                        <h1 className="mt-2 text-xl font-black tracking-tight sm:text-2xl">{championship.name}</h1>
+                        {(isActive || ended) && (
+                            <h1 className="mt-2 text-xl font-black tracking-tight sm:text-2xl">{championship.name}</h1>
+                        )}
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="hidden text-[10px] font-black tracking-[0.18em] text-zinc-500 sm:block">TELA DE PALCO</span>
