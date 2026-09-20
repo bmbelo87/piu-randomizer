@@ -23,6 +23,7 @@ import { StepBadge } from "../components/CompetitionComponents";
 import { api } from "../services/api";
 import { sendDisplayEvent } from "../services/displayEvents";
 
+import { ASSETS_URL } from "../services/config";
 interface DrawResult {
 
     draws: {
@@ -609,7 +610,7 @@ export default function PhasePage() {
                                          <img
 
                                          src={
-                                             `http://localhost:3000/banners/${encodeURIComponent(item.chart.song.bannerPath)}`
+                                             `${ASSETS_URL}/banners/${encodeURIComponent(item.chart.song.bannerPath)}`
                                          }
                                      
                                          alt={

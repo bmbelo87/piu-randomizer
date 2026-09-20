@@ -7,7 +7,9 @@
     "dev": "ts-node-dev --respawn src/server.ts",
     "import-songs": "ts-node scripts/importSongs.ts",
     "copy-from-postgres": "ts-node scripts/copyFromPostgres.ts",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "export-static-seed": "ts-node scripts/exportStaticSeed.ts",
+    "verify-static": "ts-node --transpile-only scripts/verifyStaticEngine.ts"
   },
   "keywords": [],
   "author": "",

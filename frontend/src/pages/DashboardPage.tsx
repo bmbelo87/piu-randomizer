@@ -7,6 +7,7 @@ import {
 } from "../components/CompetitionComponents";
 import type { Championship } from "../types/championship";
 
+import { openDisplay } from "../services/config";
 const PRIMARY_CATEGORIES = [
     "Intermediate",
     "Advanced",
@@ -63,10 +64,6 @@ export default function DashboardPage() {
         if (confirm(`Remover o campeonato "${championshipName}"?`)) {
             void removeChampionship(championshipId);
         }
-    }
-
-    function openDisplay() {
-        window.open("/display", "_blank", "noopener,noreferrer");
     }
 
     return (

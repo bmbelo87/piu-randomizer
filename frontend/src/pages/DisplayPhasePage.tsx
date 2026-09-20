@@ -5,6 +5,7 @@ import { subscribeDisplayEvents } from "../services/displayEvents";
 import DrawReveal from "../components/DrawReveal";
 import { StepBadge } from "../components/CompetitionComponents";
 
+import { ASSETS_URL } from "../services/config";
 interface DrawResult {
     draws: {
         song: string;
@@ -106,7 +107,7 @@ export default function DisplayPhasePage() {
                                     .sort((a, b) => a.chart.level - b.chart.level || a.chart.song.title.localeCompare(b.chart.song.title))
                                     .map(draw => (
                                         <article key={draw.id} className="w-full max-w-[480px] overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d1118] shadow-2xl">
-                                            <img src={`http://localhost:3000/banners/${encodeURIComponent(draw.chart.song.bannerPath)}`} alt={draw.chart.song.title} className="aspect-video w-full object-cover" />
+                                            <img src={`${ASSETS_URL}/banners/${encodeURIComponent(draw.chart.song.bannerPath)}`} alt={draw.chart.song.title} className="aspect-video w-full object-cover" />
                                             <div className="flex items-center justify-between gap-4 p-5">
                                                 <h3 className="text-lg font-black leading-tight">{draw.chart.song.title}</h3>
                                                 <StepBadge mode={draw.chart.mode} level={draw.chart.level} className="h-12 w-12" />

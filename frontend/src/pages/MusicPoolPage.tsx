@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useMusicPool } from "../hooks/useMusicPool";
 import { StepBadge } from "../components/CompetitionComponents";
 
+import { ASSETS_URL, openDisplay } from "../services/config";
 export default function MusicPoolPage() {
     const navigate = useNavigate();
     const { championships, loading } = useMusicPool();
@@ -47,7 +48,7 @@ export default function MusicPoolPage() {
                         <span className="text-xl text-zinc-500">←</span>
                         <span><span className="block text-[10px] font-black tracking-[0.22em] text-zinc-500">GAUCHONES 2026</span><span className="block text-sm font-black text-white">Pool de músicas</span></span>
                     </button>
-                    <button type="button" onClick={() => window.open("/display", "_blank", "noopener,noreferrer")} className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2.5 text-xs font-black text-cyan-200 transition hover:bg-cyan-300/20">Abrir sorteador ↗</button>
+                    <button type="button" onClick={() => openDisplay()} className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-2.5 text-xs font-black text-cyan-200 transition hover:bg-cyan-300/20">Abrir sorteador ↗</button>
                 </div>
             </header>
 
@@ -79,7 +80,7 @@ export default function MusicPoolPage() {
                                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
                                             {[...phase.charts].sort((a, b) => a.level - b.level || a.title.localeCompare(b.title)).map(chart => (
                                                 <article key={chart.id} className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 transition hover:-translate-y-0.5 hover:border-zinc-600">
-                                                    <div className="relative"><img src={`http://localhost:3000/banners/${encodeURIComponent(chart.bannerPath)}`} alt={chart.title} className="aspect-[4/3] w-full object-cover" /><StepBadge mode={chart.mode} level={chart.level} className="absolute right-2 top-2 h-10 w-10" /></div>
+                                                    <div className="relative"><img src={`${ASSETS_URL}/banners/${encodeURIComponent(chart.bannerPath)}`} alt={chart.title} className="aspect-[4/3] w-full object-cover" /><StepBadge mode={chart.mode} level={chart.level} className="absolute right-2 top-2 h-10 w-10" /></div>
                                                     <p className="p-3 text-xs font-bold leading-4 text-zinc-200">{chart.title}</p>
                                                 </article>
                                             ))}

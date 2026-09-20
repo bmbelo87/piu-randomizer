@@ -8,6 +8,7 @@ import {
 import { playPreview } from "../utils/drawAudio";
 import { StepBadge } from "./CompetitionComponents";
 
+import { ASSETS_URL } from "../services/config";
 const BANNER_HEIGHT = 270;
 const SPIN_ITEMS = 30;
 const TICK_MS = 150;
@@ -319,12 +320,12 @@ export default function DrawReveal({
 
                     await playPreview(
                         audioContext,
-                        `http://localhost:3000/previewsongs/${previewPath}`
+                        `${ASSETS_URL}/previewsongs/${previewPath}`
                     );
                 } else if (previewPath) {
                     const audio =
                         new Audio(
-                            `http://localhost:3000/previewsongs/${previewPath}`
+                            `${ASSETS_URL}/previewsongs/${previewPath}`
                         );
                     audio.volume = 0.3;
                     audio.play();
@@ -566,7 +567,7 @@ export default function DrawReveal({
                                                     }
 
                                                     src={
-                                                         `http://localhost:3000/banners/${encodeURIComponent(banner)}`
+                                                         `${ASSETS_URL}/banners/${encodeURIComponent(banner)}`
                                                     }
 
                                                     alt="Roulette"

@@ -1,5 +1,5 @@
 import {
-  BrowserRouter, Routes, Route
+  BrowserRouter, HashRouter, Routes, Route
 } from "react-router-dom";
 
 import DashboardPage from "./pages/DashboardPage";
@@ -15,11 +15,15 @@ import DisplayPhasePage from "./pages/DisplayPhasePage";
 import MusicPoolPage from "./pages/MusicPoolPage";
 import AmbientArrows from "./components/AmbientArrows";
 
+import { STATIC_MODE } from "./services/config";
+
+// No GitHub Pages nao ha fallback de SPA, entao as rotas usam o hash (#/rota).
+const Router = STATIC_MODE ? HashRouter : BrowserRouter;
 export default function App(){
 
   return (
 
-    <BrowserRouter>
+    <Router>
       <div className="relative min-h-screen">
         <AmbientArrows />
         <div className="relative z-10">
@@ -64,6 +68,6 @@ export default function App(){
       </div>
 
 
-    </BrowserRouter>
+    </Router>
   )
 }

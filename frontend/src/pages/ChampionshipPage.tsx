@@ -15,6 +15,7 @@ import {
     phaseStateMark
 } from "../utils/competitionUtils";
 
+import { openDisplay } from "../services/config";
 export default function ChampionshipPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -79,7 +80,7 @@ export default function ChampionshipPage() {
                     </button>
                     <div className="flex items-center gap-2">
                         <button type="button" onClick={() => navigate("/music-pool")} className="hidden rounded-lg px-3 py-2 text-xs font-bold text-zinc-400 transition hover:bg-white/[0.06] hover:text-white sm:block">Músicas</button>
-                        <button type="button" onClick={() => window.open("/display", "_blank", "noopener,noreferrer")} className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-black text-cyan-200 transition hover:bg-cyan-300/20">Abrir sorteador ↗</button>
+                        <button type="button" onClick={() => openDisplay()} className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-black text-cyan-200 transition hover:bg-cyan-300/20">Abrir sorteador ↗</button>
                     </div>
                 </div>
             </header>
@@ -174,7 +175,7 @@ export default function ChampionshipPage() {
                         <p className="text-[10px] font-black tracking-[0.22em] text-zinc-500">ACESSO RÁPIDO</p>
                         <h2 className="mt-1 text-xl font-black">Operação ao vivo</h2>
                         <div className="mt-6 space-y-3">
-                            <button type="button" onClick={() => window.open("/display", "_blank", "noopener,noreferrer")} className="flex w-full items-center justify-between rounded-xl border border-cyan-300/20 bg-cyan-300/[0.07] px-4 py-4 text-left transition hover:border-cyan-300/50">
+                            <button type="button" onClick={() => openDisplay()} className="flex w-full items-center justify-between rounded-xl border border-cyan-300/20 bg-cyan-300/[0.07] px-4 py-4 text-left transition hover:border-cyan-300/50">
                                 <span><span className="block text-sm font-black text-white">Tela do sorteador</span><span className="mt-1 block text-xs text-zinc-400">Abrir em uma tela separada</span></span><span className="text-xl text-cyan-300">↗</span>
                             </button>
                             <button type="button" onClick={() => navigate("/music-pool")} className="flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-4 text-left transition hover:border-zinc-600">

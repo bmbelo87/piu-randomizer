@@ -1,5 +1,9 @@
 import axios from "axios";
 
+import { API_URL, STATIC_MODE } from "./config";
+import { staticAdapter } from "../static/staticAdapter";
+
 export const api = axios.create({
-    baseURL: "http://localhost:3000"
+    baseURL: API_URL,
+    ...(STATIC_MODE ? { adapter: staticAdapter } : {})
 });
