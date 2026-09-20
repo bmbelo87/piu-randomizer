@@ -87,7 +87,7 @@ export default function DisplayPhasePage() {
                     <div>
                         <p className="text-[10px] font-black tracking-[0.3em] text-cyan-300/70">GAUCHONES 2026 · LIVE BOARD</p>
                         {(isActive || ended) && (
-                            <h1 className="mt-2 text-xl font-black tracking-tight sm:text-2xl">{championship.name}</h1>
+                            <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-6xl">{championship.name}</h1>
                         )}
                     </div>
                     <div className="flex items-center gap-3">
