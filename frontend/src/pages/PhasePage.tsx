@@ -21,6 +21,7 @@ import AddChartModal from "../components/AddChartModal";
 import { StepBadge } from "../components/CompetitionComponents";
 
 import { api } from "../services/api";
+import { sendDisplayEvent } from "../services/displayEvents";
 
 interface DrawResult {
 
@@ -196,18 +197,11 @@ export default function PhasePage() {
 
             await reload();
 
-            const channel =
-                new BroadcastChannel(
-                    "piu-randomizer-draw"
-                );
-
-            channel.postMessage({
+            void sendDisplayEvent({
                 draws: result.draws,
                 seed: result.seed,
                 rerollLevel: result.rerollLevel
             });
-
-            channel.close();
 
         } catch {
 
@@ -247,15 +241,11 @@ export default function PhasePage() {
             setShowDrawModal(true);
             await reload();
 
-            const channel = new BroadcastChannel(
-                "piu-randomizer-draw"
-            );
-            channel.postMessage({
+            void sendDisplayEvent({
                 draws: rerollResult.draws,
                 seed: rerollResult.seed,
                 rerollLevel: level
             });
-            channel.close();
         } catch {
             alert("Não foi possível realizar o reroll");
         } finally {
@@ -309,16 +299,9 @@ export default function PhasePage() {
                 null
             );
 
-            const channel =
-                new BroadcastChannel(
-                    "piu-randomizer-draw"
-                );
-
-            channel.postMessage({
+            void sendDisplayEvent({
                 type: "phase-update"
             });
-
-            channel.close();
         } catch {
 
             alert(
@@ -349,16 +332,9 @@ export default function PhasePage() {
                 !isActivePhase
             );
 
-            const channel =
-                new BroadcastChannel(
-                    "piu-randomizer-draw"
-                );
-
-            channel.postMessage({
+            void sendDisplayEvent({
                 type: "phase-update"
             });
-
-            channel.close();
 
         } finally {
 

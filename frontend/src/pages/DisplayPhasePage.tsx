@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { useDisplay } from "../hooks/useDisplay";
+import { subscribeDisplayEvents } from "../services/displayEvents";
 import DrawReveal from "../components/DrawReveal";
 import { StepBadge } from "../components/CompetitionComponents";
 
@@ -29,10 +30,7 @@ export default function DisplayPhasePage() {
     }
 
     useEffect(() => {
-        const channel = new BroadcastChannel("piu-randomizer-draw");
-
-        channel.onmessage = event => {
-            const message = event.data;
+        return subscribeDisplayEvents(message => {
             refetch();
 
             if (message.type === "phase-update") {
@@ -47,9 +45,7 @@ export default function DisplayPhasePage() {
                 rerollLevel: message.rerollLevel
             });
             setShowDrawModal(true);
-        };
-
-        return () => channel.close();
+        });
     }, [refetch]);
 
     if (loading || !data) {

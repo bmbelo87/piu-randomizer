@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { useChampionship } from "../hooks/useChampionship";
 import { api } from "../services/api";
+import { sendDisplayEvent } from "../services/displayEvents";
 import {
     PhaseTimeline
 } from "../components/CompetitionComponents";
@@ -21,9 +22,7 @@ export default function ChampionshipPage() {
     const [updating, setUpdating] = useState(false);
 
     async function broadcastUpdate() {
-        const channel = new BroadcastChannel("piu-randomizer-draw");
-        channel.postMessage({ type: "phase-update" });
-        channel.close();
+        await sendDisplayEvent({ type: "phase-update" });
     }
 
     async function toggleActive() {

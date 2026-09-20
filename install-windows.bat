@@ -33,46 +33,8 @@ if errorlevel 1 (
 
 if not exist "backend\.env" (
     copy /Y "backend\.env.example" "backend\.env" >nul
-    echo.
-    echo backend\.env foi criado a partir do exemplo.
-    echo Edite DATABASE_URL com os dados do PostgreSQL antes de continuar.
-    pause
+    echo backend\.env criado - banco SQLite em backend\prisma\dev.db
 )
-
-where psql >nul 2>nul
-if errorlevel 1 (
-    where winget >nul 2>nul
-    if errorlevel 1 (
-        echo PostgreSQL nao encontrado e winget nao esta disponivel.
-        echo Instale o PostgreSQL manualmente e execute este script novamente.
-        pause
-        exit /b 1
-    )
-
-    echo PostgreSQL nao encontrado. Instalando via winget...
-    winget install --id PostgreSQL.PostgreSQL.17 --exact --source winget --accept-package-agreements --accept-source-agreements
-    if errorlevel 1 (
-        echo Versao 17 indisponivel. Tentando PostgreSQL 16...
-        winget install --id PostgreSQL.PostgreSQL.16 --exact --source winget --accept-package-agreements --accept-source-agreements
-    )
-
-)
-
-set "PG_BIN="
-for %%V in (18 17 16 15 14) do if exist "C:\Program Files\PostgreSQL\%%V\bin\psql.exe" set "PG_BIN=C:\Program Files\PostgreSQL\%%V\bin"
-if not defined PG_BIN for /f "delims=" %%P in ('where /r "C:\Program Files\PostgreSQL" psql.exe 2^>nul') do if not defined PG_BIN set "PG_BIN=%%~dpP"
-if defined PG_BIN set "PATH=%PG_BIN%;%PATH%"
-
-where psql >nul 2>nul
-if errorlevel 1 (
-    echo PostgreSQL foi instalado, mas o psql ainda nao esta disponivel.
-    echo Feche e abra este script novamente apos concluir a instalacao.
-    pause
-    exit /b 1
-)
-
-echo PostgreSQL encontrado.
-echo Confirme que DATABASE_URL em backend\.env usa o usuario, senha e porta corretos.
 
 echo.
 echo [1/5] Instalando dependencias do backend...
@@ -91,7 +53,7 @@ if errorlevel 1 (
     goto :error
 )
 
-echo [4/5] Sincronizando banco de dados...
+echo [4/5] Criando/sincronizando banco SQLite...
 call npx prisma db push
 if errorlevel 1 (
     popd

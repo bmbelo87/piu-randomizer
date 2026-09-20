@@ -9,13 +9,10 @@ mkdir -p "$LOG_DIR"
 
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-# Garante que o PostgreSQL esteja de pe
-if ! pg_isready -h localhost -p 5432 >/dev/null 2>&1; then
-    if systemctl is-active --quiet postgresql 2>/dev/null; then
-        : # ja esta rodando
-    elif command -v systemctl >/dev/null 2>&1 && systemctl start postgresql 2>/dev/null; then
-        echo "[postgres] iniciado via systemctl"
-    fi
+# Cria o banco SQLite na primeira execucao
+if [ ! -f "$PROJECT_DIR/backend/prisma/dev.db" ]; then
+    echo "[db] criando banco SQLite..."
+    (cd "$PROJECT_DIR/backend" && npx prisma db push) >"$LOG_DIR/db.log" 2>&1
 fi
 
 start_if_down() {

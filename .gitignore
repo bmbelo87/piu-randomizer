@@ -144,3 +144,7 @@ vite.config.ts.timestamp-*
 /backend/uploads/banners/*
 !/backend/uploads/banners/*.png
 .runtime/
+
+# Banco SQLite local
+/backend/prisma/dev.db
+/backend/prisma/dev.db-journal
