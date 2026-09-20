@@ -7,7 +7,7 @@ export async function createChampionship(
     res: Response
 ) {
     try {
-        const {name, phases, allowRepeats, requiresActivation } = req.body;
+        const {name, phases, allowRepeats, requiresActivation, phaseActivation } = req.body;
 
         const championship = await prisma.championship.create({
             data: {
@@ -18,6 +18,9 @@ export async function createChampionship(
 
                 requiresActivation:
                     requiresActivation ?? true,
+
+                phaseActivation:
+                    phaseActivation ?? true,
 
                 order:
                     (await getNextOrder()),
@@ -214,6 +217,38 @@ export async function setCurrentPhase(
         );
     } catch {
         
+        return res.status(500).json({
+            error:
+                "Internal server error"
+        });
+    }
+}
+
+
+/**
+ * Limpa o telao sem apagar o historico: o display so passa a mostrar
+ * sorteios feitos a partir de agora.
+ */
+export async function clearDisplay(
+    req: Request,
+    res: Response
+) {
+    try {
+        const championship =
+            await prisma.championship.update({
+                where: {
+                    id: req.params.id as string
+                },
+
+                data: {
+                    displayClearedAt: new Date()
+                }
+            });
+
+        return res.json(
+            championship
+        );
+    } catch {
         return res.status(500).json({
             error:
                 "Internal server error"

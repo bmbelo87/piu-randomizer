@@ -2,12 +2,18 @@ import type { Championship, Phase } from "../types/championship";
 
 export type PhaseState = "complete" | "active" | "pending";
 
+export const LEGENDS_RANGE = "S22, S23, S24, D25, D26, D27";
+
 export function getPhaseState(
     phases: Phase[],
     phase: Phase,
-    currentPhaseId: string | null
+    currentPhaseId: string | null,
+    phaseActivation = true
 ): PhaseState {
     if (!currentPhaseId) return "pending";
+
+    // Categoria sem fases (ex.: Legends): categoria ativa = todas as listas liberadas
+    if (!phaseActivation) return "active";
 
     const activeIndex = phases.findIndex(
         item => item.id === currentPhaseId
@@ -70,7 +76,7 @@ export function categoryRangeLabel(championship: Championship) {
     if (name === "expert single") return "S18–S24";
     if (name === "expert double") return "D19–D24";
     if (name === "master") return "S/D 21–26";
-    if (name === "legends") return "D25–D27";
+    if (name === "legends") return LEGENDS_RANGE;
     if (name === "co-op x2") return "LOW → MID → UP";
     if (name === "sem barra") return "S15–S22";
 

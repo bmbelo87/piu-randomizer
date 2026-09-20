@@ -44,7 +44,7 @@ function mask(value: Json, key = ""): Json {
 
     if (typeof value === "string") {
         if (ID.test(value)) return "<id>";
-        if (key === "createdAt" && Date.parse(value) >= startedAt - 1000) return "<now>";
+        if ((key === "createdAt" || key === "displayClearedAt") && Date.parse(value) >= startedAt - 1000) return "<now>";
         if (key === "seed") return "<seed>";
     }
 
@@ -140,6 +140,38 @@ async function scenario(call: Call) {
 
     await step("deactivate", "PATCH", `/championships/${champion.id}/current-phase`, { phaseId: null });
     await step("display (deactivated)", "GET", "/display");
+
+    // Legends: so a categoria e ativada (sem fase); vale sortear em qualquer lista
+    const legends = list.find(c => c.name === "Legends")!;
+    const legendsPhases = [...legends.phases].sort((a: Json, b: Json) => a.order - b.order);
+    checks.push(`legends flags=${legends.requiresActivation}/${legends.phaseActivation}`);
+
+    await step("legends draw while inactive", "POST", `/draws/phase/${legendsPhases[0].id}`, { amount: 1 });
+    await step("legends activate category", "PATCH", `/championships/${legends.id}/current-phase`, { phaseId: legendsPhases[0].id });
+    const legendsS22 = await step("legends draw S22", "POST", `/draws/phase/${legendsPhases[0].id}`, { amount: 1 }, "shape");
+    const legendsD26 = await step("legends draw D26 (outra lista, sem ativar fase)", "POST", `/draws/phase/${legendsPhases[4].id}`, { amount: 1 }, "shape");
+    checks.push(`legends drew=${legendsS22.data.draws[0].mode}${legendsS22.data.draws[0].level}+${legendsD26.data.draws[0].mode}${legendsD26.data.draws[0].level}`);
+
+    // o telao mostra uma musica por vez: so a ultima sorteada
+    const legendsDisplay = await step("legends display", "GET", "/display", undefined, "shape");
+    const shownNow = legendsDisplay.data.phase.draws.map((d: Json) => `${d.chart.mode}${d.chart.level}`).join("+");
+    checks.push(`legends display phaseActivation=${legendsDisplay.data.championship.phaseActivation} description=${legendsDisplay.data.phase.description} shown=${shownNow} pool=${legendsDisplay.data.phase.availableCharts.length}`);
+
+    // limpar o display nao apaga o historico
+    await step("legends clear display", "POST", `/championships/${legends.id}/clear-display`, undefined, "shape");
+    const clearedDisplay = await step("legends display after clear", "GET", "/display", undefined, "shape");
+    const historyKept = (await call("GET", `/phases/${legendsPhases[0].id}`)).data.draws.length;
+    checks.push(`legends after clear: shown=${clearedDisplay.data.phase.draws.length} historyKept=${historyKept}`);
+
+    await step("legends draw S23", "POST", `/draws/phase/${legendsPhases[1].id}`, { amount: 1 }, "shape");
+    const afterNewDraw = await step("legends display after new draw", "GET", "/display", undefined, "shape");
+    checks.push(`legends new draw shown=${afterNewDraw.data.phase.draws.map((d: Json) => `${d.chart.mode}${d.chart.level}`).join("+")}`);
+
+    await step("legends deactivate", "PATCH", `/championships/${legends.id}/current-phase`, { phaseId: null });
+    await step("legends draw after deactivation", "POST", `/draws/phase/${legendsPhases[1].id}`, { amount: 1 });
+    await step("legends clear list 1", "DELETE", `/phases/${legendsPhases[0].id}/history`);
+    await step("legends clear list 5", "DELETE", `/phases/${legendsPhases[4].id}/history`);
+    await step("legends clear list 2", "DELETE", `/phases/${legendsPhases[1].id}/history`);
 
     // Master: fases com S e D no mesmo nivel (S23 + D23) precisam sortear um de cada
     const master = list.find(c => c.name === "Master")!;

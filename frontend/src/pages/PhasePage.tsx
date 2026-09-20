@@ -103,6 +103,12 @@ export default function PhasePage() {
         setRequiresActivation
     ] = useState(true);
 
+    // false = so a categoria e ativada (ex.: Legends), sem ativar fase
+    const [
+        phaseActivation,
+        setPhaseActivation
+    ] = useState(true);
+
     const championshipId =
         phase?.championshipId;
 
@@ -121,10 +127,15 @@ export default function PhasePage() {
                 )
                 .then(
                     (res) => {
+                        const byCategory =
+                            res.data.phaseActivation === false;
+
+                        setPhaseActivation(!byCategory);
+
                         setIsActivePhase(
-                            res.data
-                                .currentPhaseId ===
-                                id
+                            byCategory
+                                ? res.data.currentPhaseId !== null
+                                : res.data.currentPhaseId === id
                         );
 
                         setAllowRepeats(
@@ -316,6 +327,21 @@ export default function PhasePage() {
         }
     }
 
+    // Categoria sem fases (Legends): tira a musica do telao, sem apagar o historico
+    async function clearDisplay() {
+        try {
+            await api.post(
+                `/championships/${phase!.championshipId}/clear-display`
+            );
+
+            void sendDisplayEvent({
+                type: "phase-update"
+            });
+        } catch {
+            alert("Não foi possível limpar o display");
+        }
+    }
+
     async function activatePhase() {
 
         setActivating(true);
@@ -389,6 +415,7 @@ export default function PhasePage() {
         );
 
     const rerollAllowed =
+        phaseActivation &&
         phase.order > 1 &&
         !/final/i.test(phase.name);
 
@@ -484,7 +511,35 @@ export default function PhasePage() {
                 </button>
 
                 {
-                    requiresActivation && (
+                    !phaseActivation && (
+                        <button
+                            type="button"
+
+                            onClick={
+                                clearDisplay
+                            }
+
+                            className="
+                                border
+                                border-fuchsia-300/40
+                                bg-fuchsia-300/10
+                                text-fuchsia-200
+
+                                px-6
+                                py-3
+
+                                rounded-xl
+
+                                font-bold
+                            "
+                        >
+                            Limpar Display
+                        </button>
+                    )
+                }
+
+                {
+                    requiresActivation && phaseActivation && (
                         <button
                             onClick={
                                 activatePhase
@@ -866,7 +921,9 @@ export default function PhasePage() {
                                                     px-4
                                                 "
                                             >
-                                                Ative esta fase antes de realizar o sorteio
+                                                {phaseActivation
+                                                    ? "Ative esta fase antes de realizar o sorteio"
+                                                    : "Ative a categoria antes de realizar o sorteio"}
                                             </div>
                                         )
                                         : blockReason ===

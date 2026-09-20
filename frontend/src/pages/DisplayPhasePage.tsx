@@ -82,8 +82,10 @@ export default function DisplayPhasePage() {
         ));
     const allPhases = data.allPhases ?? [];
     const isActive = Boolean(championship.currentPhaseId);
+    // false = so a categoria e ativada (ex.: Legends): mostra os sorteios de todas as listas
+    const byCategory = championship.phaseActivation === false;
     const lastPhase = [...allPhases].sort((a, b) => b.order - a.order)[0];
-    const ended = !isActive && Boolean(lastPhase?.drawCount);
+    const ended = !isActive && !byCategory && Boolean(lastPhase?.drawCount);
 
     return (
         <div className="min-h-screen bg-transparent text-white">
@@ -119,12 +121,22 @@ export default function DisplayPhasePage() {
                     ) : (
                         <section className="mx-auto w-full max-w-[1500px]">
                             <div className="mb-10 text-center">
-                                <p className="text-[11px] font-black tracking-[0.3em] text-cyan-300/80">FASE EM ANDAMENTO</p>
-                                <h2 className="mt-4 text-4xl font-black tracking-[-0.03em] sm:text-6xl">{phase.name}</h2>
-                                <p className="mt-3 text-lg font-semibold text-zinc-400">
-                                    {phase.description ?? (phase.mode === "X2" ? "CO-OP X2" : `${phase.mode} · ${phase.minLevel}${phase.maxLevel == null ? "+" : `–${phase.maxLevel}`}`)}
-                                </p>
+                                <p className="text-[11px] font-black tracking-[0.3em] text-cyan-300/80">{byCategory ? "CATEGORIA EM ANDAMENTO" : "FASE EM ANDAMENTO"}</p>
+                                {byCategory ? (
+                                    <h2 className="mt-4 text-3xl font-black tracking-[-0.03em] sm:text-5xl">{phase.description ?? phase.name}</h2>
+                                ) : (
+                                    <>
+                                        <h2 className="mt-4 text-4xl font-black tracking-[-0.03em] sm:text-6xl">{phase.name}</h2>
+                                        <p className="mt-3 text-lg font-semibold text-zinc-400">
+                                            {phase.description ?? (phase.mode === "X2" ? "CO-OP X2" : `${phase.mode} · ${phase.minLevel}${phase.maxLevel == null ? "+" : `–${phase.maxLevel}`}`)}
+                                        </p>
+                                    </>
+                                )}
                             </div>
+
+                            {byCategory && phase.draws.length === 0 && (
+                                <p className="mb-2 text-center text-lg font-semibold text-zinc-500">Aguardando sorteio</p>
+                            )}
 
                             <div className="flex flex-wrap justify-center gap-5">
                                 {[...phase.draws]

@@ -4,6 +4,19 @@ import crypto from "crypto";
 
 import { prisma } from "../database/prisma";
 
+/**
+ * Categoria com ativacao por fase: so a fase ativa sorteia.
+ * Categoria sem fases (phaseActivation = false, ex.: Legends): basta a categoria estar ativa.
+ */
+function isActiveFor(
+    championship: { phaseActivation: boolean; currentPhaseId: string | null },
+    phaseId: string
+) {
+    return championship.phaseActivation
+        ? championship.currentPhaseId === phaseId
+        : championship.currentPhaseId !== null;
+}
+
 export async function drawCharts(
     req: Request,
     res: Response
@@ -64,11 +77,13 @@ export async function drawCharts(
 
         if (
             championship.requiresActivation &&
-            championship.currentPhaseId !== phaseId
+            !isActiveFor(championship, phaseId)
         ) {
             return res.status(400).json({
                 error:
-                    "Phase is not the active phase"
+                    championship.phaseActivation
+                        ? "Phase is not the active phase"
+                        : "Category is not active"
             });
         }
 
@@ -315,10 +330,12 @@ export async function rerollChart(
 
         if (
             championship.requiresActivation &&
-            championship.currentPhaseId !== phaseId
+            !isActiveFor(championship, phaseId)
         ) {
             return res.status(400).json({
-                error: "Phase is not the active phase"
+                error: championship.phaseActivation
+                    ? "Phase is not the active phase"
+                    : "Category is not active"
             });
         }
 

@@ -19,6 +19,12 @@ model Championship {
   allowRepeats        Boolean     @default(false)
   requiresActivation  Boolean     @default(true)
 
+  // false = so a categoria e ativada (sem ativar fase): o sorteio vale em todas as listas
+  phaseActivation     Boolean     @default(true)
+
+  // Categoria sem fases: o telao so mostra sorteios feitos depois desta data (limpar display)
+  displayClearedAt    DateTime?
+
   phases      Phase[]
 
   currentPhaseId  String?

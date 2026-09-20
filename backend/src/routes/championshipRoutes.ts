@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { createChampionship, deleteChampionship, getChampionship, listChampionships, setCurrentPhase } from "../controllers/championshipController";
+import { clearDisplay, createChampionship, deleteChampionship, getChampionship, listChampionships, setCurrentPhase } from "../controllers/championshipController";
 
 const router = Router();
 
@@ -27,6 +27,11 @@ router.delete(
 router.patch(
     "/:id/current-phase",
     setCurrentPhase
+);
+
+router.post(
+    "/:id/clear-display",
+    clearDisplay
 );
 
 export default router;

@@ -9,6 +9,30 @@ import {
 }
 from "../database/prisma";
 
+function latestDrawGroup<
+    T extends { seed: string; createdAt: Date }
+>(
+    draws: T[],
+    clearedAt: Date | null
+) {
+    let latest: T | undefined;
+
+    for (const draw of draws) {
+        if (!latest || draw.createdAt >= latest.createdAt) {
+            latest = draw;
+        }
+    }
+
+    if (!latest || (clearedAt && latest.createdAt <= clearedAt)) {
+        return [];
+    }
+
+    // sorteios da mesma chamada compartilham a seed
+    return draws.filter(
+        draw => draw.seed === latest.seed
+    );
+}
+
 export async function getDisplay(
     req: Request,
     res: Response
@@ -118,6 +142,68 @@ export async function getDisplay(
                 });
         }
 
+        // Categoria sem fases (ex.: Legends): o telao mostra os sorteios de todas as listas juntos
+        if (phase && !championship.phaseActivation) {
+            const lists =
+                await prisma.phase.findMany({
+                    where: {
+                        championshipId:
+                            championship.id
+                    },
+
+                    orderBy: {
+                        order: "asc"
+                    },
+
+                    include: {
+                        draws: {
+                            include: {
+                                chart: {
+                                    include: {
+                                        song: true
+                                    }
+                                }
+                            }
+                        },
+
+                        availableCharts: {
+                            include: {
+                                chart: {
+                                    include: {
+                                        song: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+            phase = {
+                ...phase,
+
+                name:
+                    championship.name,
+
+                description:
+                    lists
+                        .map(list => list.description)
+                        .filter(Boolean)
+                        .join(", ") || null,
+
+                // Uma musica por vez: so o ultimo sorteio, e so se veio depois de "limpar display"
+                draws:
+                    latestDrawGroup(
+                        lists.flatMap(list => list.draws),
+                        championship.displayClearedAt
+                    ),
+
+                availableCharts:
+                    lists.flatMap(
+                        list => list.availableCharts
+                    )
+            };
+        }
+
         return res.json({
             championship: {
 
@@ -129,7 +215,11 @@ export async function getDisplay(
 
                 currentPhaseId:
                     championship
-                        .currentPhaseId
+                        .currentPhaseId,
+
+                phaseActivation:
+                    championship
+                        .phaseActivation
             },
 
             phase,

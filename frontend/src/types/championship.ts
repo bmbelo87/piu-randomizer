@@ -27,6 +27,9 @@ export interface Championship {
 
     requiresActivation: boolean;
 
+    // false = so a categoria e ativada (sem ativar fase), ex.: Legends
+    phaseActivation?: boolean;
+
     currentPhaseId: string | null;
 
     phases: Phase[];

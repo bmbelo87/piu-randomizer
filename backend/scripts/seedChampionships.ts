@@ -18,6 +18,7 @@ interface PhaseSeed {
     minLevel: number;
     maxLevel: number | null;
     drawCount: number;
+    description?: string;
     charts?: ChartSeed[];
 }
 
@@ -25,6 +26,7 @@ interface ChampionshipSeed {
     name: string;
     allowRepeats?: boolean;
     requiresActivation?: boolean;
+    phaseActivation?: boolean;
     phases: PhaseSeed[];
 }
 
@@ -429,10 +431,10 @@ const championships: ChampionshipSeed[] = [
     {
         name: "Master",
         phases: [
-            { name: "1a Fase", modes: ["S", "D"], minLevel: 21, maxLevel: 22, drawCount: 2, charts: masterCharts["1a Fase"] },
-            { name: "2a Fase", modes: ["S", "D"], minLevel: 23, maxLevel: 23, drawCount: 2, charts: masterCharts["2a Fase"] },
-            { name: "3a Fase", modes: ["S", "D"], minLevel: 24, maxLevel: 24, drawCount: 2, charts: masterCharts["3a Fase"] },
-            { name: "Final", modes: ["S", "D"], minLevel: 25, maxLevel: 26, drawCount: 2, charts: masterCharts["Final"] }
+            { name: "1a Fase", modes: ["S", "D"], minLevel: 21, maxLevel: 22, drawCount: 2, description: "S21 e S22", charts: masterCharts["1a Fase"] },
+            { name: "2a Fase", modes: ["S", "D"], minLevel: 23, maxLevel: 23, drawCount: 2, description: "S23 e D23", charts: masterCharts["2a Fase"] },
+            { name: "3a Fase", modes: ["S", "D"], minLevel: 24, maxLevel: 24, drawCount: 2, description: "S24 e D24", charts: masterCharts["3a Fase"] },
+            { name: "Final", modes: ["S", "D"], minLevel: 25, maxLevel: 26, drawCount: 2, description: "D25 e D26", charts: masterCharts["Final"] }
         ]
     },
     {
@@ -455,14 +457,15 @@ const championships: ChampionshipSeed[] = [
     {
         name: "Legends",
         allowRepeats: true,
-        requiresActivation: false,
+        requiresActivation: true,
+        phaseActivation: false,
         phases: [
-            { name: "S22", modes: ["S"], minLevel: 22, maxLevel: 22, drawCount: 1, charts: legendsCharts.S22 },
-            { name: "S23", modes: ["S"], minLevel: 23, maxLevel: 23, drawCount: 1, charts: legendsCharts.S23 },
-            { name: "S24", modes: ["S"], minLevel: 24, maxLevel: 24, drawCount: 1, charts: legendsCharts.S24 },
-            { name: "D25", modes: ["D"], minLevel: 25, maxLevel: 25, drawCount: 1, charts: legendsCharts.D25 },
-            { name: "D26", modes: ["D"], minLevel: 26, maxLevel: 26, drawCount: 1, charts: legendsCharts.D26 },
-            { name: "D27", modes: ["D"], minLevel: 27, maxLevel: 27, drawCount: 1, charts: legendsCharts.D27 }
+            { name: "S22", modes: ["S"], minLevel: 22, maxLevel: 22, drawCount: 1, description: "S22", charts: legendsCharts.S22 },
+            { name: "S23", modes: ["S"], minLevel: 23, maxLevel: 23, drawCount: 1, description: "S23", charts: legendsCharts.S23 },
+            { name: "S24", modes: ["S"], minLevel: 24, maxLevel: 24, drawCount: 1, description: "S24", charts: legendsCharts.S24 },
+            { name: "D25", modes: ["D"], minLevel: 25, maxLevel: 25, drawCount: 1, description: "D25", charts: legendsCharts.D25 },
+            { name: "D26", modes: ["D"], minLevel: 26, maxLevel: 26, drawCount: 1, description: "D26", charts: legendsCharts.D26 },
+            { name: "D27", modes: ["D"], minLevel: 27, maxLevel: 27, drawCount: 1, description: "D27", charts: legendsCharts.D27 }
         ]
     }
 ];
@@ -542,7 +545,8 @@ async function seedPhase(
             minLevel: seed.minLevel,
             maxLevel: seed.maxLevel,
             allowOver: seed.maxLevel === null,
-            drawCount: seed.drawCount
+            drawCount: seed.drawCount,
+            description: seed.description ?? null
         }
     });
 
@@ -863,7 +867,8 @@ async function main() {
                 name: championship.name,
                 order: index,
                 allowRepeats: championship.allowRepeats ?? false,
-                requiresActivation: championship.requiresActivation ?? true
+                requiresActivation: championship.requiresActivation ?? true,
+                phaseActivation: championship.phaseActivation ?? true
             }
         });
 

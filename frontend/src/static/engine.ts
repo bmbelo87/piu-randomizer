@@ -13,6 +13,8 @@ export interface Championship {
     order: number;
     allowRepeats: boolean;
     requiresActivation: boolean;
+    phaseActivation: boolean;
+    displayClearedAt: string | null;
     currentPhaseId: string | null;
 }
 
@@ -165,6 +167,16 @@ function findPhase(db: Db, id: string) {
     return db.phases.find(phase => phase.id === id);
 }
 
+/**
+ * Categoria com ativacao por fase: so a fase ativa sorteia.
+ * Categoria sem fases (phaseActivation = false, ex.: Legends): basta a categoria estar ativa.
+ */
+function isActiveFor(championship: Championship, phaseId: string) {
+    return championship.phaseActivation
+        ? championship.currentPhaseId === phaseId
+        : championship.currentPhaseId !== null;
+}
+
 function championshipOfPhase(db: Db, phaseId: string) {
     const phase = findPhase(db, phaseId);
     return phase && db.championships.find(c => c.id === phase.championshipId);
@@ -192,7 +204,7 @@ function drawSummary(draw: { chart: Chart & { song: Song } }) {
 type Body = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 function createChampionship(db: Db, body: Body) {
-    const { name, phases, allowRepeats, requiresActivation } = body;
+    const { name, phases, allowRepeats, requiresActivation, phaseActivation } = body;
 
     const championship: Championship = {
         id: newId(),
@@ -201,6 +213,8 @@ function createChampionship(db: Db, body: Body) {
         order: db.championships.reduce((max, c) => Math.max(max, c.order), -1) + 1,
         allowRepeats: allowRepeats ?? false,
         requiresActivation: requiresActivation ?? true,
+        phaseActivation: phaseActivation ?? true,
+        displayClearedAt: null,
         currentPhaseId: null
     };
 
@@ -264,6 +278,37 @@ function setCurrentPhase(db: Db, id: string, body: Body) {
     }
 
     return championship;
+}
+
+/** Limpa o telao sem apagar o historico: so passa a mostrar sorteios feitos daqui em diante. */
+function clearDisplay(db: Db, id: string) {
+    const championship = db.championships.find(c => c.id === id);
+
+    if (!championship) {
+        throw new Error("Record to update not found");
+    }
+
+    championship.displayClearedAt = new Date().toISOString();
+
+    return championship;
+}
+
+/** Uma musica por vez: so o ultimo sorteio, e so se veio depois de "limpar display". */
+function latestDrawGroup(draws: Draw[], clearedAt: string | null) {
+    let latest: Draw | undefined;
+
+    for (const draw of draws) {
+        if (!latest || draw.createdAt >= latest.createdAt) {
+            latest = draw;
+        }
+    }
+
+    if (!latest || (clearedAt && latest.createdAt <= clearedAt)) {
+        return [];
+    }
+
+    // sorteios da mesma chamada compartilham a seed
+    return draws.filter(draw => draw.seed === latest.seed);
 }
 
 // ---------- phases ----------
@@ -354,8 +399,8 @@ function drawCharts(db: Db, phaseId: string, body: Body) {
         fail(400, "Phase not found in any championship");
     }
 
-    if (championship.requiresActivation && championship.currentPhaseId !== phaseId) {
-        fail(400, "Phase is not the active phase");
+    if (championship.requiresActivation && !isActiveFor(championship, phaseId)) {
+        fail(400, championship.phaseActivation ? "Phase is not the active phase" : "Category is not active");
     }
 
     const alreadyDrawnIds = phaseDraws.map(draw => draw.chartId);
@@ -462,8 +507,8 @@ function rerollChart(db: Db, phaseId: string, body: Body) {
         fail(400, "Phase not found in any championship");
     }
 
-    if (championship.requiresActivation && championship.currentPhaseId !== phaseId) {
-        fail(400, "Phase is not the active phase");
+    if (championship.requiresActivation && !isActiveFor(championship, phaseId)) {
+        fail(400, championship.phaseActivation ? "Phase is not the active phase" : "Category is not active");
     }
 
     if (!Number.isInteger(level)) {
@@ -578,11 +623,31 @@ function getDisplay(db: Db) {
         };
     }
 
+    // Categoria sem fases (ex.: Legends): o telao mostra os sorteios de todas as listas juntos
+    if (phase && !championship.phaseActivation) {
+        const lists = phases; // ja na ordem de insercao, como o backend (orderBy order)
+        const ordered = sortedBy(lists, (a, b) => a.order - b.order);
+
+        phase = {
+            ...phase,
+            name: championship.name,
+            description: ordered.map(list => list.description).filter(Boolean).join(", ") || null,
+            draws: latestDrawGroup(
+                ordered.flatMap(list => db.draws.filter(draw => draw.phaseId === list.id)),
+                championship.displayClearedAt ?? null
+            ).map(draw => withChartAndSong(db, draw)),
+            availableCharts: ordered.flatMap(list =>
+                phaseChartsOf(db, list.id).map(pc => withChart(db, pc))
+            )
+        };
+    }
+
     return {
         championship: {
             id: championship.id,
             name: championship.name,
-            currentPhaseId: championship.currentPhaseId
+            currentPhaseId: championship.currentPhaseId,
+            phaseActivation: championship.phaseActivation
         },
         phase,
         allPhases
@@ -640,6 +705,7 @@ const routes: { method: string; pattern: RegExp; handler: Handler }[] = [
     },
     { method: "DELETE", pattern: /^\/championships\/([^/]+)$/, handler: (db, [id]) => deleteChampionship(db, id) },
     { method: "PATCH", pattern: /^\/championships\/([^/]+)\/current-phase$/, handler: (db, [id], body) => setCurrentPhase(db, id, body) },
+    { method: "POST", pattern: /^\/championships\/([^/]+)\/clear-display$/, handler: (db, [id]) => clearDisplay(db, id) },
 
     { method: "POST", pattern: /^\/songs$/, handler: (db, _p, body) => createSong(db, body) },
     { method: "GET", pattern: /^\/songs$/, handler: db => listSongs(db) },

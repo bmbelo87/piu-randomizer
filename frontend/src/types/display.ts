@@ -13,6 +13,7 @@ export interface DisplayData {
         id: string;
         name: string;
         currentPhaseId: string | null;
+        phaseActivation?: boolean;
     };
 
     phase: Phase | null;

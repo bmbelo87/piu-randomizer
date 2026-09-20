@@ -8,6 +8,7 @@ import {
     PhaseTimeline
 } from "../components/CompetitionComponents";
 import {
+    LEGENDS_RANGE,
     getPhaseState,
     phaseDifficulty,
     phaseName,
@@ -24,6 +25,17 @@ export default function ChampionshipPage() {
 
     async function broadcastUpdate() {
         await sendDisplayEvent({ type: "phase-update" });
+    }
+
+    // Legends: tira a musica do telao, sem apagar o historico
+    async function clearDisplay() {
+        setUpdating(true);
+        try {
+            await api.post(`/championships/${id}/clear-display`);
+            await broadcastUpdate();
+        } finally {
+            setUpdating(false);
+        }
     }
 
     async function toggleActive() {
@@ -66,6 +78,8 @@ export default function ChampionshipPage() {
         phase => phase.id === championship.currentPhaseId
     );
     const isLegends = championship.name.toLowerCase() === "legends";
+    // false = so a categoria e ativada; as listas nao tem "fase ativa"
+    const phaseActivation = championship.phaseActivation !== false;
 
     return (
         <div className="min-h-screen bg-transparent text-white">
@@ -98,7 +112,7 @@ export default function ChampionshipPage() {
                         </div>
                         <h1 className="mt-5 text-4xl font-black tracking-[-0.04em] sm:text-5xl">{championship.name}</h1>
                         <p className="mt-2 text-sm font-semibold text-zinc-400">
-                            {isLegends ? "D25–D27 · formato Battle Royale" : `${phases.length} fases · operação de campeonato`}
+                            {isLegends ? `${LEGENDS_RANGE} · formato Battle Royale` : `${phases.length} fases · operação de campeonato`}
                         </p>
                     </div>
 
@@ -113,9 +127,15 @@ export default function ChampionshipPage() {
                     <section className="mt-8 rounded-3xl border border-fuchsia-300/20 bg-[radial-gradient(circle_at_50%_0%,rgba(232,121,249,0.14),transparent_50%),#100d16] p-8 lg:p-12">
                         <p className="text-center text-[10px] font-black tracking-[0.3em] text-fuchsia-300">FORMATO ESPECIAL</p>
                         <h2 className="mt-4 text-center text-3xl font-black">⚔ BATTLE ROYALE</h2>
-                        <p className="mt-3 text-center text-sm font-semibold text-zinc-400">D25 · D26 · D27</p>
+                        <p className="mt-3 text-center text-sm font-semibold text-zinc-400">{LEGENDS_RANGE}</p>
                         <div className="mx-auto mt-8 max-w-2xl">
                             <PhaseTimeline championship={championship} onOpenPhase={phase => navigate(`/phases/${phase.id}`)} />
+                        </div>
+                        <div className="mt-8 flex flex-col items-center gap-2">
+                            <button type="button" onClick={() => void clearDisplay()} disabled={updating} className="rounded-xl border border-fuchsia-300/40 bg-fuchsia-300/10 px-5 py-3 text-sm font-black text-fuchsia-200 transition hover:bg-fuchsia-300/20 disabled:opacity-50">
+                                Limpar display
+                            </button>
+                            <p className="text-xs font-semibold text-zinc-500">Tira a música do telão. O histórico de sorteios é mantido.</p>
                         </div>
                     </section>
                 ) : (
@@ -136,14 +156,14 @@ export default function ChampionshipPage() {
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <p className="text-[10px] font-black tracking-[0.22em] text-zinc-500">OPERAÇÃO</p>
-                                <h2 className="mt-1 text-xl font-black">Fases do campeonato</h2>
+                                <h2 className="mt-1 text-xl font-black">{phaseActivation ? "Fases do campeonato" : "Listas de sorteio"}</h2>
                             </div>
-                            {activePhase && <span className="text-xs font-black tracking-[0.14em] text-cyan-300">{phaseName(activePhase)} ATIVA</span>}
+                            {phaseActivation && activePhase && <span className="text-xs font-black tracking-[0.14em] text-cyan-300">{phaseName(activePhase)} ATIVA</span>}
                         </div>
 
                         <div className="mt-6 space-y-3">
                             {phases.map(phase => {
-                                const state = getPhaseState(phases, phase, championship.currentPhaseId);
+                                const state = getPhaseState(phases, phase, championship.currentPhaseId, championship.phaseActivation);
                                 const isActive = state === "active";
 
                                 return (
@@ -159,7 +179,7 @@ export default function ChampionshipPage() {
                                         </button>
                                         <div className="flex items-center gap-2 pl-13 sm:pl-0">
                                             <button type="button" onClick={() => navigate(`/phases/${phase.id}`)} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-black text-zinc-300 transition hover:border-cyan-300/40 hover:text-white">Gerenciar</button>
-                                            {championship.requiresActivation && (
+                                            {championship.requiresActivation && phaseActivation && (
                                                 <button type="button" onClick={() => void setActivePhase(phase.id)} disabled={updating || isActive} className={`rounded-lg px-3 py-2 text-xs font-black ${isActive ? "bg-cyan-300 text-zinc-950" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"}`}>
                                                     {isActive ? "Ativa" : "Ativar"}
                                                 </button>

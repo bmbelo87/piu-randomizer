@@ -1,5 +1,7 @@
 import type { Championship, Phase } from "../types/championship";
 import {
+    LEGENDS_RANGE,
+    categoryRangeLabel,
     getPhaseState,
     phaseDifficulty,
     phaseName,
@@ -132,7 +134,8 @@ export function PhaseTimeline({
                 const state = getPhaseState(
                     phases,
                     phase,
-                    championship.currentPhaseId
+                    championship.currentPhaseId,
+                    championship.phaseActivation
                 );
                 const colors = stateClasses(state);
 
@@ -176,26 +179,6 @@ export function PhaseTimeline({
     );
 }
 
-function categoryRange(championship: Championship) {
-    const name = championship.name.toLowerCase();
-
-    if (name === "intermediate") return "S11–S17";
-    if (name === "advanced") return "S15–S21";
-    if (name === "expert single") return "S18–S24";
-    if (name === "expert double") return "D19–D24";
-    if (name === "master") return "S/D 21–26";
-    if (name === "legends") return "D25–D27";
-    if (name === "co-op x2") return "LOW → MID → UP";
-    if (name === "sem barra") return "S15–S22";
-
-    const levels = championship.phases
-        .map(phase => [phase.minLevel, phase.maxLevel ?? phase.minLevel])
-        .flat();
-    const min = Math.min(...levels);
-    const max = Math.max(...levels);
-    return `${min}–${max}`;
-}
-
 interface CategoryCardProps {
     championship: Championship;
     onOpen: () => void;
@@ -237,7 +220,7 @@ export function CategoryCard({
                         {championship.name}
                     </h3>
                     <p className="mt-1 text-sm font-semibold text-zinc-400">
-                        {categoryRange(championship)}
+                        {categoryRangeLabel(championship)}
                     </p>
                 </button>
 
@@ -262,7 +245,7 @@ export function CategoryCard({
             {isLegends ? (
                 <button type="button" onClick={onOpen} className="mt-5 w-full rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/[0.06] p-4 text-left transition hover:border-fuchsia-300/50">
                     <p className="text-xs font-black tracking-[0.16em] text-fuchsia-200">⚔ BATTLE ROYALE</p>
-                    <p className="mt-2 text-sm font-semibold text-zinc-300">D25 · D26 · D27</p>
+                    <p className="mt-2 text-sm font-semibold text-zinc-300">{LEGENDS_RANGE}</p>
                     <p className="mt-3 text-[10px] font-black tracking-[0.15em] text-fuchsia-300">
                         {!championship.requiresActivation
                             ? "SORTEIO LIVRE"
